@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nfs-volume
+spec:
+  capacity:
+    storage: 6Gi
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  persistentVolumeReclaimPolicy: Retain #if a user deletes a PVC, the corresponding PV will not be deleted
+  nfs:
+    server: 172.18.0.1 #tools cluster Gateway IP address
+    path: "/var/nfs/shared"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jenkins-pv-claim
+  namespace: jenkins
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  resources:
+    requests:
+      storage: 3Gi

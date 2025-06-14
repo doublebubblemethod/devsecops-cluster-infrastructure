@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nfs-01
+spec:
+  capacity:
+    storage: 7Gi
+  accessModes:
+    - ReadWriteMany
+  volumeMode: Filesystem
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: nfs-01
+  local:
+    path: /mnt/disks/ssd1
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - k3d-tools-cluster-agent-3
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: local-pvc
+  namespace: jenkins
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 4Gi
+  storageClassName: ""
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: example-pod-lpv
+  namespace: jenkins
+spec:
+  tolerations:
+  - key: "local-storage-available"
+    operator: "Equal"
+    value: "true"
+    effect: "NoSchedule"
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+              - k3d-tools-cluster-agent-3
+  containers:
+  - name: example-container
+    image: nginx
+    volumeMounts:
+    - mountPath: "/var/www/html"
+      name: local-storage
+  volumes:
+  - name: local-storage
+    persistentVolumeClaim:
+      claimName: local-pvc

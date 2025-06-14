@@ -1,0 +1,17 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: jenkins-iroute
+  namespace: jenkins
+spec:
+  entryPoints:
+    - websecure
+    - web
+  routes:
+    - match: Host(`jenkins.cluster.com`) 
+      kind: Rule
+      services:
+        - name: jenkins-service
+          port: 8080
+  tls:
+    secretName: jenkins-ingress

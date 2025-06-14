@@ -1,0 +1,47 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: sonar
+  name: endpointslice-manager
+rules:
+- apiGroups: ["discovery.k8s.io"]
+  resources: ["endpointslices"]
+  verbs: ["get", "list", "watch", "create", "update", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: endpointslice-manager-binding
+  namespace: sonar
+subjects:
+- kind: ServiceAccount
+  name: traefik
+  namespace: kube-system
+roleRef:
+  kind: Role
+  name: endpointslice-manager
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: sonar
+  name: traefik-role
+rules:
+- apiGroups: [""]
+  resources: ["services", "endpoints"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: traefik-role-binding
+  namespace: sonar
+subjects:
+- kind: ServiceAccount
+  name: traefik
+  namespace: kube-system
+roleRef:
+  kind: Role
+  name: traefik-role
+  apiGroup: rbac.authorization.k8s.io

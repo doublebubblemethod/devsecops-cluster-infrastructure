@@ -1,0 +1,17 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: vault-iroute
+  namespace: vault
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`vault.cluster.com`)
+      kind: Rule
+      services:
+        - name: vault
+          port: 8200
+          scheme: http
+  tls:
+    secretName: ingress-local-cert
