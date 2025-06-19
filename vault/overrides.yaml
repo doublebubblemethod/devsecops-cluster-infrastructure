@@ -1,11 +1,7 @@
 global:
   enabled: true
   tlsDisable: false
-  serverTelemetry:
-    prometheusOperator: true
 injector:
-  logLevel: "debug"
-  logFormat: "json"
   enabled: true
   resources:
     requests:
@@ -16,12 +12,22 @@ injector:
       cpu: 250m
 ui:
   enabled: true
-  serviceType: "ClusterIP"
-  serviceNodePort: null
-  externalPort: 8200
 server:
-  logLevel: "debug"
-  logFormat: "json"
+  # ingress:
+  #   enabled: true
+  #   annotations:
+  #     kubernetes.io/ingress.class: traefik
+  #     traefik.ingress.kubernetes.io/service.serversscheme: https
+  #     traefik.ingress.kubernetes.io/router.entrypoints: websecure
+  #   ingressClassName: traefik
+  #   pathType: Prefix
+  #   activeService: true
+  #   hosts:
+  #     - host: vault.cluster.com
+  #   tls:
+  #     - secretName: ingress-local-cert
+  #       hosts:
+  #         - vault.cluster.com
   resources:
     requests:
       memory: 256Mi
@@ -30,17 +36,17 @@ server:
       memory: 384Mi
       cpu: 200m
   extraEnvironmentVars:
-    VAULT_CACERT: /vault/userconfig/vault-tls/vault.ca
-    VAULT_TLSCERT: /vault/userconfig/vault-tls/vault.crt
-    VAULT_TLSKEY: /vault/userconfig/vault-tls/vault.key
+    VAULT_CACERT: /vault/userconfig/vault-ha-tls/vault.ca
+    VAULT_TLSCERT: /vault/userconfig/vault-ha-tls/vault.crt
+    VAULT_TLSKEY: /vault/userconfig/vault-ha-tls/vault.key
   volumes:
-    - name: userconfig-vault-tls
+    - name: userconfig-vault-ha-tls
       secret:
         defaultMode: 420
-        secretName: vault-tls
+        secretName: vault-ha-tls
   volumeMounts:
-    - mountPath: /vault/userconfig/vault-tls
-      name: userconfig-vault-tls
+    - mountPath: /vault/userconfig/vault-ha-tls
+      name: userconfig-vault-ha-tls
       readOnly: true
   auditStorage:
     enabled: true
@@ -57,11 +63,10 @@ server:
         ui = true
         listener "tcp" {
            tls_disable = 0
-           address = "0.0.0.0:8200"
-           cluster_address = "0.0.0.0:8201"
-           tls_cert_file = "/vault/userconfig/vault-tls/vault.crt"
-           tls_key_file  = "/vault/userconfig/vault-tls/vault.key"
-           tls_client_ca_file = "/vault/userconfig/vault-tls/vault.ca"
+           address = "[::]:8200"
+           cluster_address = "[::]:8201"
+           tls_cert_file = "/vault/userconfig/vault-ha-tls/vault.crt"
+           tls_key_file  = "/vault/userconfig/vault-ha-tls/vault.key"
         }
         storage "raft" {
            path = "/vault/data"
