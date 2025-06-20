@@ -8,3 +8,6 @@ Also, an ephemeral Kubernetes pod-based Jenkins agent is a great way to reduce t
 
 NFS provisioner setup
 https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner/tree/master/deploy
+
+Vault initial set up:
+https://akjamie.github.io/post/2023-03-25-vault-on-k8s/
