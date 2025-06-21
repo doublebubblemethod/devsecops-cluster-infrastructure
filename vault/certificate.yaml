@@ -1,0 +1,13 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: jenkins-cert
+  namespace: jenkins
+spec:
+  secretName: jenkins-tls-cert
+  issuerRef:
+    name: vault-issuer
+    kind: Issuer
+  commonName: jenkins.cluster.com
+  dnsNames:
+  - jenkins.cluster.com

@@ -1,4 +1,24 @@
 # TLS/HTTPS with Traefik, cert-manager & Vault
+-------------------
+As a result in our infra we're going to have 2 separate CAs:
+1. Vault TLS server certificate ( my K8S CA )
+2. Vault PKI engine CA ( Vault’s internal CA )
+Benefits:
+    Security isolation: If the PKI CA is compromised or rotated, Vault’s TLS server cert can remain stable and trusted.
+
+    Operational flexibility: You can manage Vault’s TLS lifecycle independently from your app certs lifecycle.
+
+    Easier automation: Vault PKI CA can be rotated frequently without impacting Vault’s API TLS connectivity.
+Issuer:	
+For 1. => External CA (your k8s CA or custom CA)	
+For 2. => Self-signed internal Vault PKI root CA
+-------------------
+Prerequisites
+1. Create secrets per namespace with Vault TLS CA
+        kubectl create secret generic tls-ca \
+        -n jenkins \
+        --from-file=ca.crt=vault.ca
+    This becomes handy when creating Issuer resource
 
 Generate the root CA
 
@@ -73,21 +93,6 @@ vault write pki/roles/cluster-dot-com \
         use_csr_sans                          true
         use_pss                               false
     }
-Set the service account for the issuer; include your namespace; In vault UI go to Access panel -> kubernetes/issuer
-    Note: if it fails, it might help : vault auth enable kubernetes
-
-vault write auth/kubernetes/role/jenkins-role \
-    bound_service_account_names=jenkins-sa \
-    bound_service_account_namespaces=jenkins
-
-vault write auth/kubernetes/role/sonar-role \
-    bound_service_account_names=sonar-sa \
-    bound_service_account_namespaces=sonar
-
-vault write auth/kubernetes/role/argo-role \
-    bound_service_account_names=argo-sa \
-    bound_service_account_namespaces=argo
-
 Create ACL policies
 The following policy grants permissions to use the PKI engine:
     pki* → Read/list PKI configuration (e.g., fetch CA cert)
@@ -101,10 +106,79 @@ path "pki/sign/cluster-dot-com" { capabilities = ["create", "update"] }
 path "pki/issue/cluster-dot-com" { capabilities = ["create"] }
 EOF
 
-✅ Then the k8s secret-token will be used by cert-manager in the Vault Issuer or ClusterIssuer to authenticate.
+Set the service account for the issuer; include your namespace; In vault UI go to Access panel -> kubernetes/issuer
+    Note: if it fails, it might help : vault auth enable kubernetes
 
+vault write auth/kubernetes/role/jenkins-role \
+  bound_service_account_names=jenkins-sa \
+  bound_service_account_namespaces=jenkins \
+  policies=pki \
+  ttl=1h
+
+vault write auth/kubernetes/role/sonar-role \
+  bound_service_account_names=sonar-sa \
+  bound_service_account_namespaces=sonar \
+  policies=pki \
+  ttl=1h
+
+vault write auth/kubernetes/role/argo-role \
+  bound_service_account_names=argo-sa \
+  bound_service_account_namespaces=argo \
+  policies=pki \
+  ttl=1h
+
+It will not work untill we set up Vault Authentication Method. How to choose one, depends on your environment. My Vault server is running inside the Kubernetes cluster, so i go with Kubernetes Auth
+### Kubernetes Auth as Vault Authentication Method
+The Kubernetes auth method requires a token_reviewer_jwt, which is a JWT token that is used by Vault to call the TokenReview API of the Kubernetes API server. This endpoint is then used to verify the JWT token that is provided by cert-manager. 
+This token_reviewer_jwt token can be provided by the Kubernetes service account token that is mounted into the Vault pod.✅ is enabled when Vault auto-detects that it is running in a Kubernetes cluster. Ypu can peek at it from a pod: "cat /var/run/secrets/kubernetes.io/serviceaccount/token"
+
+vault auth enable kubernetes
+
+vault write auth/kubernetes/config \
+  token_reviewer_jwt="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" \
+  kubernetes_host="https://$KUBERNETES_PORT_443_TCP_ADDR:443" \
+  kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+-----------------
+Let's go back to our cluster-side config
+
+Create Service Account:
 k create -f issuers-service-accounts.yaml
 
 Create Issuer resource, This is called by the cert-manager to request the certificate when the certificate is expired/required.
 We point it to the vault server, provide the path to the PKI that we configured in the previous section, and provide the service account to use (issuer) 
 
+k create -f issuer_with_rbac.yaml
+
+### Ingress configs
+To use cert-manager with Traefik’s IngressRoute for automatic TLS cert provisioning from your Vault Issuer, here’s how you can set it up:
+
+![alt text](image.png)
+
+Create a certificate referencing non-existing secret
+k create -f certificate.yaml
+
+Update your IngressRoute by adding annotation to reference cert manager and that non-existing secret reference:
+    annotations:
+        cert-manager.io/issuer: "vault-issuer"
+and 
+    tls:
+        secretName: jenkins-tls-cert 
+
+k apply -f jenkins/jenkins-agents/ingressroute.yaml
+
+Add that CA that you have generated inside Vault pki to your browser's trusted CAs
+
+Check if this worked:
+1. secret jenkins-tls-cert in jenkins namespace
+2. Browse https://jenkins.cluster.com and see if padlock 🔐 is ok
+
+Help commands:
+Describe the role:
+    vault read auth/kubernetes/role/jenkins-role
+
+Check certificate data from k8s secret:
+kubectl get secret jenkins-tls-cert -n jenkins -o jsonpath='{.data.ca\.crt}' | base64 -d | openssl x509 -text -noout
+
+Check if your browser has corrct certificate:
+echo | openssl s_client -connect jenkins.cluster.com:443 -servername jenkins.cluster.com | openssl x509 -noout -issuer -subject -dates
