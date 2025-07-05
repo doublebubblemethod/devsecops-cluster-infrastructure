@@ -1,0 +1,76 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: vault-issuer
+  namespace: argo
+rules:
+  - apiGroups: ['']
+    resources: ['serviceaccounts/token']
+    verbs: ['create']
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: vault-issuer
+  namespace: argo
+subjects:
+  - kind: ServiceAccount
+    name: cert-manager
+    namespace: cert-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: vault-issuer
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: argo-cert
+  namespace: argo
+spec:
+  secretName: argo-tls-cert
+  issuerRef:
+    name: vault-issuer
+    kind: Issuer
+  commonName: argo.cluster.com
+  dnsNames:
+  - argo.cluster.com        
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+    name: vault-issuer
+    namespace: argo
+spec:
+    vault:
+        caBundleSecretRef:
+            name: tls-ca
+            key: ca.crt
+        server: https://vault-1.vault-internal.vault.svc.cluster.local:8200
+        path: pki/sign/cluster-dot-com
+        auth:
+            kubernetes:
+                mountPath: /v1/auth/kubernetes
+                role: argo-role
+                serviceAccountRef:
+                    name: argo-sa
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: argo-iroute
+  namespace: argo
+  annotations:
+    cert-manager.io/issuer: "vault-issuer"
+spec:
+  entryPoints:
+    - websecure
+    - web
+  routes:
+    - match: Host(`argo.cluster.com`) 
+      kind: Rule
+      services:
+        - name: argo-service
+          port: 8080
+  tls:
+    secretName: argo-tls-cert 

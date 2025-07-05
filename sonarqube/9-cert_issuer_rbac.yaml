@@ -1,0 +1,57 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: vault-issuer
+  namespace: sonar
+rules:
+  - apiGroups: ['']
+    resources: ['serviceaccounts/token']
+    verbs: ['create']
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: vault-issuer
+  namespace: sonar
+subjects:
+  - kind: ServiceAccount
+    name: cert-manager
+    namespace: cert-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: vault-issuer       
+--- 
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: sonar-cert
+  namespace: sonar
+spec:
+  secretName: sonar-tls-cert
+  issuerRef:
+    name: vault-issuer
+    kind: Issuer
+  commonName: sonar.cluster.com
+  dnsNames:
+  - sonar.cluster.com
+---
+kind: Issuer
+metadata:
+    name: vault-issuer
+    namespace: sonar
+spec:
+    vault:
+        caBundleSecretRef:
+            name: tls-ca
+            key: ca.crt
+        server: https://vault-1.vault-internal.vault.svc.cluster.local:8200
+        path: pki/sign/cluster-dot-com
+        auth:
+            kubernetes:
+                mountPath: /v1/auth/kubernetes
+                role: sonar-role
+                serviceAccountRef:
+                    name: sonar-sa
+
+
