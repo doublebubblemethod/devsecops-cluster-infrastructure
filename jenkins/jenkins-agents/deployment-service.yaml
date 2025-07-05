@@ -19,7 +19,7 @@ spec:
             runAsUser: 1000
       containers:
         - name: jenkins
-          image: jenkins/jenkins:lts
+          image: askdragon/jenkins-controller:vault-ca-1
           resources:
             limits:
               memory: "2Gi"
@@ -50,11 +50,13 @@ spec:
             failureThreshold: 3
           volumeMounts:
             - name: jenkins-data
-              mountPath: /var/jenkins_home         
+              mountPath: /var/jenkins_home   
       volumes:
         - name: jenkins-data
           persistentVolumeClaim:
               claimName: jenkins-pv-claim
+
+        
 
 # Service Config
 ---
