@@ -27,6 +27,14 @@ Get a SecretID issued against the AppRole:
     output:
     > `secret_id             0252becb-95ae-2db4-f5e2-b3fd0b98215e`  
     > `secret_id_accessor    38641b4a-3d96-84f4-a1eb-8d6d96f3d31a`  
+Go to Manage Jenkins/Credentials/System/Global Credentials(unrestricked) to create a secret that allows Jenkins to retrieve secrets from Vault (in pipelines and in Credention store) 
+Type: Vault AppRole Credential
+Scope: Global (the default one)
+Put in Role ID and Secret ID than we saved before
+Path: Approle
+Namespace: leave it empty
+ID: jenkins-approle
+Description: <fill it as you want>
 
 Enable KV v2 at a custom path (secrets/)
 `vault secrets enable -path=secrets -version=2 kv`
@@ -58,7 +66,18 @@ Personally, before updationg deployment I have created a test pod similar to jen
 
 ### Create Jenkins pipeline with the following script:
 
-```pipeline {
+```
+    def secrets = [
+        [path: 'secrets/jenkins/cicd', engineVersion: 2, secretValues: [
+            [vaultKey: 'sonar_token']]]
+    ]
+    def configuration = [
+        vaultUrl: 'https://vault-1.vault-internal.vault.svc.cluster.local:8200',
+        vaultCredentialId: 'jenkins-approle',
+        engineVersion: 2
+    ]
+
+    pipeline {
     agent {
         label 'kubeagent'
     }
@@ -98,3 +117,15 @@ Personally, before updationg deployment I have created a test pod similar to jen
     }
 } 
 ```
+### How to add credential from Vault
+Go to Manage Jenkins/Credentials/System/Global Credentials(unrestricked) to create a specific secret from Vault secrets/jenkins store
+Type: Vault Secret Text Credentials
+Scope: Global (the default one)
+Namespace: leave it empty
+Prefix Path: leave it empty
+Path: secrets/jenkins/cicd
+Vaulr Key: sonar_token
+K/V Engine Version: 2
+ID: sonar_token
+Description: <fill it as you want>
+
