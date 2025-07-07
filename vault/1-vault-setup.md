@@ -138,10 +138,10 @@ result:
 vault operator generate-root -decode=<your token> -otp=<your otp>
     Voala!
 
-### Make stateful set redeploy pods safely
-kubectl patch statefulset vault \
-  -n $VAULT_K8S_NAMESPACE \
-  -p "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"restartedAt\":\"$(date +%s)\"}}}}}"
+Upgrade vault with helm:
+`helm upgrade vault hashicorp/vault -f overrides.yaml -n vault`  
+Make stateful set redeploy pods safely:
+`kubectl patch statefulset vault -n $VAULT_K8S_NAMESPACE -p "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"restartedAt\":\"$(date +%s)\"}}}}}"`     
 
 ###Future notes: 
 I think i should remake certificated for Vault, bacause i desire these alt names to be used:

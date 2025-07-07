@@ -132,13 +132,14 @@ It will not work untill we set up Vault Authentication Method. How to choose one
 The Kubernetes auth method requires a token_reviewer_jwt, which is a JWT token that is used by Vault to call the TokenReview API of the Kubernetes API server. This endpoint is then used to verify the JWT token that is provided by cert-manager. 
 This token_reviewer_jwt token can be provided by the Kubernetes service account token that is mounted into the Vault pod.✅ is enabled when Vault auto-detects that it is running in a Kubernetes cluster. Ypu can peek at it from a pod: "cat /var/run/secrets/kubernetes.io/serviceaccount/token"
 
-vault auth enable kubernetes
+vault auth enable kubernetes 
 
 vault write auth/kubernetes/config \
   token_reviewer_jwt="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" \
   kubernetes_host="https://$KUBERNETES_PORT_443_TCP_ADDR:443" \
   kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
 
+(P.S. this also important for VSO integration in the future)
 -----------------
 Let's go back to our cluster-side config
 

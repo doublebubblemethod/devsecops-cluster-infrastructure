@@ -13,28 +13,13 @@ injector:
 ui:
   enabled: true
 server:
-  # ingress:
-  #   enabled: true
-  #   annotations:
-  #     kubernetes.io/ingress.class: traefik
-  #     traefik.ingress.kubernetes.io/service.serversscheme: https
-  #     traefik.ingress.kubernetes.io/router.entrypoints: websecure
-  #   ingressClassName: traefik
-  #   pathType: Prefix
-  #   activeService: true
-  #   hosts:
-  #     - host: vault.cluster.com
-  #   tls:
-  #     - secretName: ingress-local-cert
-  #       hosts:
-  #         - vault.cluster.com
   resources:
     requests:
       memory: 256Mi
       cpu: 200m
     limits:
       memory: 384Mi
-      cpu: 200m
+      cpu: 500m
   extraEnvironmentVars:
     VAULT_CACERT: /vault/userconfig/vault-ha-tls/vault.ca
     VAULT_TLSCERT: /vault/userconfig/vault-ha-tls/vault.crt
