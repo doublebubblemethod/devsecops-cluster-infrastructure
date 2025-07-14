@@ -1,0 +1,19 @@
+controller:
+   manager:
+      clientCache:
+         persistenceModel: direct-encrypted
+         storageEncryption:
+            enabled: true
+            mount: vso
+            keyName: vso-client-cache
+            transitMount: demo-transit
+            kubernetes:
+               role: auth-role-operator
+               serviceAccount: demo-operator
+               tokenAudiences: ["vault"]
+defaultVaultConnection:
+  enabled: true
+  address: "https://vault-1.vault-internal.vault.svc.cluster.local:8200"
+  caCertSecret: "vault-ca-secret"
+  tlsServerName: "vault-1.vault-internal.vault.svc.cluster.local"
+  skipTLSVerify: false

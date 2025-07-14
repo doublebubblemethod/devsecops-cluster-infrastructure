@@ -25,8 +25,8 @@ fetch role id
 Get a SecretID issued against the AppRole:
 `vault write -f auth/approle/role/jenkins-approle/secret-id`  
     output:
-    > `secret_id             0252becb-95ae-2db4-f5e2-b3fd0b98215e`  
-    > `secret_id_accessor    38641b4a-3d96-84f4-a1eb-8d6d96f3d31a`  
+    > `secret_id             <your secret_id>`  
+    > `secret_id_accessor    <your secret_id_accessor>`  
 Go to Manage Jenkins/Credentials/System/Global Credentials(unrestricked) to create a secret that allows Jenkins to retrieve secrets from Vault (in pipelines and in Credention store) 
 Type: Vault AppRole Credential
 Scope: Global (the default one)

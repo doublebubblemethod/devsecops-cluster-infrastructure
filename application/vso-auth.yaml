@@ -1,16 +1,16 @@
-# Now we configure the authentication between Vault and Kubernetes.
-# VSO supports a few options for authentication, but we will use the native Kubernetes auth engine.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: vault-serviceaccount
+  name: vault-auth
+  namespace: application
 ---
 apiVersion: v1
 kind: Secret
 metadata:
   name: vault-auth
+  namespace: application
   annotations:
-    kubernetes.io/service-account.name: vault-serviceaccount
+    kubernetes.io/service-account.name: vault-auth
 type: kubernetes.io/service-account-token
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -23,6 +23,5 @@ roleRef:
   name: system:auth-delegator
 subjects:
   - kind: ServiceAccount
-    name: vault-serviceaccount
-    namespace: default
-
+    name: vault-auth
+    namespace: application

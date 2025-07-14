@@ -20,10 +20,131 @@ Install VSO using helm:
     helm repo add hashicorp https://helm.releases.hashicorp.com
     helm repo update hashicorp
     helm search repo hashicorp/vault-secrets-operator
-    helm upgrade --install vault-secrets-operator hashicorp/vault-secrets-operator --namespace $vso_ns 
+    helm upgrade --install vault-secrets-operator hashicorp/vault-secrets-operator -f vso-values.yaml --namespace $vso_ns 
     ```
 Go to Vault
 create Vault secret for application and mySQL db
 create Vault policy that can see secrets. 'data' path needs to be inserted when dealing with API level. Also you can check API path in vault ui where you have created a secret to get correct path for this policy. 
-`kubectl exec -n $VAULT_K8S_NAMESPACE vault-0 -it -- sh`
-`echo 'path "secrets/data/application/*" { capabilities=["read"] }' | vault policy write vso-policy -`
+
+
+NEW 
+The Database Secrets Engine is a Vault plugin that generates dynamic DB credentials instead of using static ones. These credentials have a lease and can be revoked or rotated automatically
+In Vault, a role under the engine maps to a dynamic user template using SQL commands executed to create a temporary DB user and Grants ALL PRIVILEGES on the postgres database to it in role
+kubectl exec -n $VAULT_K8S_NAMESPACE vault-0 -- vault secrets enable -path=db database
+
+helm upgrade --install postgres bitna
+mi/postgresql --namespace application --set audit.logConnections=true  --set auth.d
+atabase=petclinic --set auth.username=petclinic --set auth.postgresPassword=<your password>
+
+(it did not work for me and i had to create a user, grand roles and create DB:
+CREATE DATABASE petclinic;
+)
+
+
+kubectl exec -n $VAULT_K8S_NAMESPACE vault-0 -- vault write db/config/db \
+   plugin_name=postgresql-database-plugin \
+   allowed_roles="petuser" \
+   connection_url="postgresql://{{username}}:{{password}}@postgres-postgresql.application.svc.cluster.local:5432/petclinic?sslmode=disable" \
+   username="petclinic" \
+   password="<your password>" 
+Success! Data written to: db/config/db
+
+Create a role for the PostgreSQL pod.
+
+kubectl exec -n $VAULT_K8S_NAMESPACE vault-0 -- vault write db/roles/petuser \
+   db_name=petclinic \
+   creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; \
+      GRANT ALL PRIVILEGES ON DATABASE petclinic TO \"{{name}}\";" \
+   revocation_statements="REVOKE ALL ON DATABASE petclinic FROM  \"{{name}}\";" \
+   backend=db \
+   name=petuser \
+   default_ttl="1h" \
+   max_ttl="12h"
+
+kubectl exec -n $VAULT_K8S_NAMESPACE vault-0 -- vault read db/creds/petuser
+
+Create the auth-policy-db policy.
+
+kubectl exec -n $VAULT_K8S_NAMESPACE vault-0 -- cat <<EOF > tmp/auth-policy-db.hcl
+path "db/creds/petuser" {
+   capabilities = ["read"]
+}
+EOF
+
+kubectl exec -n $VAULT_K8S_NAMESPACE vault-0 -- vault policy write auth-policy-db /dev/stdin < tmp/auth-policy-db.hcl
+
+### Helm upgrade with your values file
+helm upgrade \
+  -f vso-values.yml \
+  vault-secrets-operator hashicorp/vault-secrets-operator \
+  --namespace vault
+
+kubectl logs deploy/vault-secrets-operator-controller-manager \
+  -n vault | grep "clientCache"
+
+kubectl exec -n $VAULT_K8S_NAMESPACE vault-0 -it -- sh
+vault secrets enable -path=demo-transit transit
+
+Create a encryption key:
+vault write -force demo-transit/keys/vso-client-cache
+
+Create a policy for the operator role to access the encryption key:
+cat <<EOF > tmp/demo-auth-policy-operator.hcl
+path "demo-transit/encrypt/vso-client-cache" {
+   capabilities = ["create", "update"]
+}
+path "demo-transit/decrypt/vso-client-cache" {
+   capabilities = ["create", "update"]
+}
+EOF
+
+vault policy write demo-auth-policy-operator dev/stdin < tmp/demo-auth-policy-operator.hcl
+
+    Success! Uploaded policy: demo-auth-policy-operator
+
+Create Kubernetes auth role for the operator: 
+vault write auth/vso/role/auth-role-operator \
+   bound_service_account_names=vault-secrets-operator-controller-manager \
+   bound_service_account_namespaces=vault\
+   token_ttl=0 \
+   token_period=120 \
+   token_policies=demo-auth-policy-operator \
+   audience=vault
+
+   Success! Data written to: auth/vso/role/auth-role-operator
+
+Create a new role for the dynamic secret.
+kubectl exec -n $VAULT_K8S_NAMESPACE vault-0 -- vault write auth/vso/role/auth-role \
+   bound_service_account_names=dynamic-application \
+   bound_service_account_namespaces=application \
+   token_ttl=0 \
+   token_period=120 \
+   token_policies=auth-policy-db \
+   audience=vault
+
+k exec postgres-postgresql-0 -it -n application
+tion -- sh
+$ psql -U postgres
+Password for user postgres: 
+psql (17.5)
+Type "help" for help.
+
+postgres=# \du
+                             List of roles
+ Role name |                         Attributes                         
+-----------+------------------------------------------------------------
+ postgres  | Superuser, Create role, Create DB, Replication, Bypass RLS
+
+ To get the password for "petclinic" run:
+
+    export POSTGRES_PASSWORD=$(kubectl get secret --namespace application postgres-postgresql -o jsonpath="{.data.password}" | base64 -d)
+
+To connect to your database run the following command:
+
+    kubectl run postgres-postgresql-client --rm --tty -i --restart='Never' --namespace application --image docker.io/bitnami/postgresql:17.5.0-debian-12-r18 --env="PGPASSWORD=$POSTGRES_PASSWORD" \
+      --command -- psql --host postgres-postgresql -U petclinic -d petclinic -p 5432
+
+    > NOTE: If you access the container using bash, make sure that you execute "/opt/bitnami/scripts/postgresql/entrypoint.sh /bin/bash
+
+
+{"level":"error","ts":"2025-07-13T23:49:57+02:00","logger":"doVault","msg":"Vault request failed","controller":"vaultdynamicsecret","controllerGroup":"secrets.hashicorp.com","controllerKind":"VaultDynamicSecret","VaultDynamicSecret":{"name":"vso-db-create","namespace":"application"},"namespace":"application","name":"vso-db-create","reconcileID":"24e9f90f-2f29-43ea-b1b6-51ab6e8f7677","path":"db/creds/petuser","method":"GET","error":"Error making API request.\n\nURL: GET https://vault-1.vault-internal.vault.svc.cluster.local:8200/v1/db/creds/petuser\nCode: 403. Errors:\n\n* 1 error occurred:\n\t* permission denied\n\n"}

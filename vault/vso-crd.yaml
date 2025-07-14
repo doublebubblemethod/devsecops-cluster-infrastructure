@@ -1,35 +1,37 @@
 apiVersion: secrets.hashicorp.com/v1beta1
 kind: VaultConnection
 metadata:
-  namespace: default
+  namespace: application
   name: vault-connection
 spec:
   # address to the Vault server.
-  address: http://vault.vault.svc.cluster.local:8200
+  address: https://vault-1.vault-internal.vault.svc.cluster.local:8200
   skipTLSVerify: true
 ---
 apiVersion: secrets.hashicorp.com/v1beta1
 kind: VaultAuth
 metadata:
   name: vault-auth
+  namespace: application
 spec:
   vaultConnectionRef: vault-connection
   method: kubernetes
-  mount: kubernetes
+  mount: vso
   kubernetes:
-    role: vault-role
-    serviceAccount: vault-serviceaccount
+    role: vso-role
+    serviceAccount: vault-auth
 ---
 apiVersion: secrets.hashicorp.com/v1beta1
 kind: VaultStaticSecret
 metadata:
   name: vault-static-secret
+  namespace: application
 spec:
   vaultAuthRef: vault-auth
-  mount: kv-v2
+  mount: secrets
   type: kv-v2
-  path:  vault-tools
-  refreshAfter: 60s
+  path:  application
+  refreshAfter: 10s
   destination:
     create: true
     name: vso-handled
