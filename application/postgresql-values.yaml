@@ -1,0 +1,15 @@
+audit:
+    logConnections: true
+auth:
+  enablePostgresUser: true
+  username: "postgres"
+  database: "petclinic"
+  replicationUsername: repl_user
+  existingSecret: "secretkv"
+  secretKeys:
+    adminPasswordKey: POSTGRES_ADMIN_PASSWORD
+    userPasswordKey: POSTGRES_PASSWORD
+    replicationPasswordKey: POSTGRES_REPLICATOR_PASSWORD
+  ## @param auth.usePasswordFiles Mount credentials as a files instead of using an environment variable
+  ##
+  usePasswordFiles: false

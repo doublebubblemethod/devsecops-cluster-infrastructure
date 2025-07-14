@@ -1,0 +1,63 @@
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultConnection
+metadata:
+  name: default
+  namespace: application
+spec:
+  address: https://vault-1.vault-internal.vault.svc.cluster.local:8200
+  skipTLSVerify: false
+  tlsConfig:
+  caCertSecretRef: "tls-ca"
+  tlsServerName: vault-1.vault-internal.vault.svc.cluster.local
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  # SA bound to the VSO namespace for transit engine auth
+  namespace: vault
+  name: demo-operator
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: application
+  name: static-secrets
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultAuth
+metadata:
+  name: static-auth
+  namespace: application
+spec:
+  method: kubernetes
+  mount: auth-mount
+  kubernetes:
+    role: pet-role
+    serviceAccount: static-secrets
+    audiences:
+      - vault
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: vault-kv-app
+  namespace: application
+spec:
+  type: kv-v2
+
+  # mount path
+  mount: secrets
+
+  # path of the secret
+  path: application
+
+  # dest k8s secret
+  destination:
+    name: secretkv
+    create: true
+
+  # static secret refresh interval
+  refreshAfter: 30s
+
+  # Name of the CRD to authenticate to Vault
+  vaultAuthRef: static-auth

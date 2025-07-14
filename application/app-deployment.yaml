@@ -4,7 +4,7 @@ metadata:
   name: petclinic-app
   namespace: application
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: petclinic
@@ -13,37 +13,26 @@ spec:
       labels:
         app: petclinic
     spec:
-      volumes:
-        - name: secrets
-          secret:
-            secretName: "vso-db"
+      imagePullSecrets:
+        - name: regcred
       containers:
         - name: petclinic
-          image: askdragon/petclinic:v1
+          image: askdragon/petclinic:v2
           ports:
             - containerPort: 8080
-          volumeMounts:
-            - name: secrets
-              mountPath: /etc/secrets
-              readOnly: true
           env:
-            - name: POSTGRES_URL
-              value: jdbc:postgres-postgresql.application.svc.cluster.local:5432/petclinic
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
-                  name: "vso-db"
-                  key: username
-            - name: POSTGRES_PASSWORD
+                  name: secretkv
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASS
               valueFrom:
-                  secretKeyRef:
-                    name: "vso-db"
-                    key: password
-            # - name: POSTGRES_DB
-            #   valueFrom:
-            #     secretKeyRef:
-            #       name: "vso-db"
-            #       key: dbname
+                secretKeyRef:
+                  name: secretkv
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_URL
+              value: jdbc:postgresql://postgres-postgresql.application.svc.cluster.local:5432/petclinic
 ---
 apiVersion: v1
 kind: Service

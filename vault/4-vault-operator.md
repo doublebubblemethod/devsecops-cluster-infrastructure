@@ -122,9 +122,36 @@ kubectl exec -n $VAULT_K8S_NAMESPACE vault-0 -- vault write auth/vso/role/auth-r
    token_policies=auth-policy-db \
    audience=vault
 
+------------------
+Static secrets:
+vault auth enable -path auth-mount kubernetes
+
+vault write auth/auth-mount/config \
+   kubernetes_host="https://10.96.0.1:443"
+
+vault write auth/auth-mount/role/pet-role \
+   bound_service_account_names=static-secrets \
+   bound_service_account_namespaces=application \
+   policies=injector-policy \
+   audience=vault \
+   ttl=24h
+
+k create -f application/vso-auth-static.yaml
+
+kubectl create secret docker-registry regcred \
+  --docker-username=askdragon \
+  --docker-password=<your pass> \
+  --docker-email="<your email>" \
+  -n application
+
+psql -U postgres
+  GRANT USAGE ON SCHEMA public TO petclinic;
+GRANT ALL ON SCHEMA public TO petclinic;
+
+-----------------------------
 k exec postgres-postgresql-0 -it -n application
 tion -- sh
-$ psql -U postgres
+$ psql -U petclinic
 Password for user postgres: 
 psql (17.5)
 Type "help" for help.
@@ -145,6 +172,3 @@ To connect to your database run the following command:
       --command -- psql --host postgres-postgresql -U petclinic -d petclinic -p 5432
 
     > NOTE: If you access the container using bash, make sure that you execute "/opt/bitnami/scripts/postgresql/entrypoint.sh /bin/bash
-
-
-{"level":"error","ts":"2025-07-13T23:49:57+02:00","logger":"doVault","msg":"Vault request failed","controller":"vaultdynamicsecret","controllerGroup":"secrets.hashicorp.com","controllerKind":"VaultDynamicSecret","VaultDynamicSecret":{"name":"vso-db-create","namespace":"application"},"namespace":"application","name":"vso-db-create","reconcileID":"24e9f90f-2f29-43ea-b1b6-51ab6e8f7677","path":"db/creds/petuser","method":"GET","error":"Error making API request.\n\nURL: GET https://vault-1.vault-internal.vault.svc.cluster.local:8200/v1/db/creds/petuser\nCode: 403. Errors:\n\n* 1 error occurred:\n\t* permission denied\n\n"}
