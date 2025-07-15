@@ -22,6 +22,12 @@ roleRef:
   kind: Role
   name: vault-issuer
 ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+    name: argo-sa
+    namespace: argo
+---
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:

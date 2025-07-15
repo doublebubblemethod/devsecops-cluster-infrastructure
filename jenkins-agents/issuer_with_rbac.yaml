@@ -1,14 +1,14 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-    name: sonar-sa
-    namespace: sonar
+    name: jenkins-sa
+    namespace: jenkins
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: vault-issuer
-  namespace: sonar
+  namespace: jenkins
 rules:
   - apiGroups: ['']
     resources: ['serviceaccounts/token']
@@ -18,7 +18,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: vault-issuer
-  namespace: sonar
+  namespace: jenkins
 subjects:
   - kind: ServiceAccount
     name: cert-manager
@@ -26,26 +26,13 @@ subjects:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: vault-issuer       
---- 
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: sonar-cert
-  namespace: sonar
-spec:
-  secretName: sonar-tls-cert
-  issuerRef:
-    name: vault-issuer
-    kind: Issuer
-  commonName: sonar.cluster.com
-  dnsNames:
-  - sonar.cluster.com
+  name: vault-issuer
 ---
+apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
     name: vault-issuer
-    namespace: sonar
+    namespace: jenkins
 spec:
     vault:
         caBundleSecretRef:
@@ -56,8 +43,6 @@ spec:
         auth:
             kubernetes:
                 mountPath: /v1/auth/kubernetes
-                role: sonar-role
+                role: jenkins-role
                 serviceAccountRef:
-                    name: sonar-sa
-
-
+                    name: jenkins-sa

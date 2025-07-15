@@ -127,6 +127,13 @@ vault write auth/kubernetes/role/argo-role \
   policies=pki \
   ttl=1h
 
+vault write auth/kubernetes/role/applion-role \
+  bound_service_account_names=application-sa \
+  bound_service_account_namespaces=application \
+  policies=pki \
+  ttl=1h
+
+
 It will not work untill we set up Vault Authentication Method. How to choose one, depends on your environment. My Vault server is running inside the Kubernetes cluster, so i go with Kubernetes Auth
 ### Kubernetes Auth as Vault Authentication Method
 The Kubernetes auth method requires a token_reviewer_jwt, which is a JWT token that is used by Vault to call the TokenReview API of the Kubernetes API server. This endpoint is then used to verify the JWT token that is provided by cert-manager. 
@@ -149,7 +156,7 @@ k create -f issuers-service-accounts.yaml
 Create Issuer resource, This is called by the cert-manager to request the certificate when the certificate is expired/required.
 We point it to the vault server, provide the path to the PKI that we configured in the previous section, and provide the service account to use (issuer) 
 
-k create -f issuer_with_rbac.yaml
+k create -f jenkins/issuer_with_rbac.yaml
 
 ### Ingress configs
 To use cert-manager with Traefik’s IngressRoute for automatic TLS cert provisioning from your Vault Issuer, here’s how you can set it up:

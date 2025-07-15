@@ -1,14 +1,8 @@
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-    name: sonar-sa
-    namespace: sonar
----
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: vault-issuer
-  namespace: sonar
+  namespace: application
 rules:
   - apiGroups: ['']
     resources: ['serviceaccounts/token']
@@ -18,7 +12,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: vault-issuer
-  namespace: sonar
+  namespace: application
 subjects:
   - kind: ServiceAccount
     name: cert-manager
@@ -26,26 +20,33 @@ subjects:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: vault-issuer       
---- 
+  name: vault-issuer
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+    name: application-sa
+    namespace: application
+---
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: sonar-cert
-  namespace: sonar
+  name: application-cert
+  namespace: application
 spec:
-  secretName: sonar-tls-cert
+  secretName: petclinic-tls-cert
   issuerRef:
     name: vault-issuer
     kind: Issuer
-  commonName: sonar.cluster.com
+  commonName: petclinic.cluster.com
   dnsNames:
-  - sonar.cluster.com
+  - petclinic.cluster.com        
 ---
+apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
     name: vault-issuer
-    namespace: sonar
+    namespace: application
 spec:
     vault:
         caBundleSecretRef:
@@ -56,8 +57,26 @@ spec:
         auth:
             kubernetes:
                 mountPath: /v1/auth/kubernetes
-                role: sonar-role
+                role: applion-role
                 serviceAccountRef:
-                    name: sonar-sa
-
-
+                    name: application-sa
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: application-iroute
+  namespace: application
+  annotations:
+    cert-manager.io/issuer: "vault-issuer"
+spec:
+  entryPoints:
+    - websecure
+    - web
+  routes:
+    - match: Host(`petclinic.cluster.com`) 
+      kind: Rule
+      services:
+        - name: petclinic-service
+          port: 8080
+  tls:
+    secretName: petclinic-tls-cert 
