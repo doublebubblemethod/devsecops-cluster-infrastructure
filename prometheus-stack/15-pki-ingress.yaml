@@ -1,0 +1,72 @@
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: grafana-sa
+  namespace: monitoring
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: graf-vault-issuer
+  namespace: monitoring
+subjects:
+  - kind: ServiceAccount
+    name: cert-manager
+    namespace: cert-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: vault-issuer
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+    name: graf-vault-issuer
+    namespace: monitoring
+spec:
+    vault:
+        caBundleSecretRef:
+            name: tls-ca
+            key: ca.crt
+        server: https://vault-1.vault-internal.vault.svc.cluster.local:8200
+        path: pki/sign/cluster-dot-com
+        auth:
+            kubernetes:
+                mountPath: /v1/auth/kubernetes
+                role: grafana-role
+                serviceAccountRef:
+                    name: grafana-sa
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: grafana-cert
+  namespace: monitoring
+spec:
+  secretName: grafana-tls-cert
+  issuerRef:
+    name: graf-vault-issuer
+    kind: Issuer
+  commonName: grafana.cluster.com
+  dnsNames:
+  - grafana.cluster.com
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: grafana-iroute
+  namespace: monitoring
+  annotations:
+    cert-manager.io/issuer: "graf-vault-issuer"
+spec:
+  entryPoints:
+    - websecure
+    - web
+  routes:
+    - match: Host(`grafana.cluster.com`) 
+      kind: Rule
+      services:
+        - name: grafana
+          port: 3000
+  tls:
+    secretName: ingress-local-cert

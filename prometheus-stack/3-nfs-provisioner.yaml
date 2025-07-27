@@ -1,0 +1,38 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: nfs-prometheus-provisioner
+  namespace: monitoring
+  labels:
+    app: nfs-prometheus-provisioner
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: nfs-prometheus-provisioner
+  template:
+    metadata:
+      labels:
+        app: nfs-prometheus-provisioner
+    spec:
+      serviceAccountName: nfs-prometheus-provisioner
+      containers:
+        - name: nfs-prometheus-provisioner
+          image: k8s.gcr.io/sig-storage/nfs-subdir-external-provisioner:v4.0.2
+          volumeMounts:
+            - name: nfs-prometheus-root
+              mountPath: /persistentvolumes
+          env:
+            - name: PROVISIONER_NAME
+              value: k8s-sigs.io/nfs-subdir-external-provisioner
+            - name: NFS_SERVER
+              value: 192.168.1.179
+            - name: NFS_PATH
+              value: /var/nfs/k8s
+      volumes:
+        - name: nfs-prometheus-root
+          nfs:
+            server: 192.168.1.179
+            path: /var/nfs/k8s

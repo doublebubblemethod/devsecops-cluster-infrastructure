@@ -139,6 +139,12 @@ vault write auth/kubernetes/role/prometheus-role \
   policies=pki \
   ttl=1h
 
+vault write auth/kubernetes/role/grafana-role \
+  bound_service_account_names=grafana-sa \
+  bound_service_account_namespaces=monitoring \
+  policies=pki \
+  ttl=1h
+
 It will not work untill we set up Vault Authentication Method. How to choose one, depends on your environment. My Vault server is running inside the Kubernetes cluster, so i go with Kubernetes Auth
 ### Kubernetes Auth as Vault Authentication Method
 The Kubernetes auth method requires a token_reviewer_jwt, which is a JWT token that is used by Vault to call the TokenReview API of the Kubernetes API server. This endpoint is then used to verify the JWT token that is provided by cert-manager. 

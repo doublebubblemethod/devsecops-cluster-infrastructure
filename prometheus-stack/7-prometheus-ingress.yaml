@@ -1,0 +1,89 @@
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: prometheus-sa
+  namespace: monitoring
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: vault-issuer
+  namespace: monitoring
+rules:
+  - apiGroups: ['']
+    resources: ['serviceaccounts/token']
+    verbs: ['create']
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: vault-issuer
+  namespace: monitoring
+subjects:
+  - kind: ServiceAccount
+    name: cert-manager
+    namespace: cert-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: vault-issuer
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+    name: vault-issuer
+    namespace: monitoring
+spec:
+    vault:
+        caBundleSecretRef:
+            name: tls-ca
+            key: ca.crt
+        server: https://vault-1.vault-internal.vault.svc.cluster.local:8200
+        path: pki/sign/cluster-dot-com
+        auth:
+            kubernetes:
+                mountPath: /v1/auth/kubernetes
+                role: prometheus-role
+                serviceAccountRef:
+                    name: prometheus-sa
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: prometheus-cert
+  namespace: monitoring
+spec:
+  secretName: prometheus-tls-cert
+  issuerRef:
+    name: vault-issuer
+    kind: Issuer
+  commonName: prometheus.cluster.com
+  dnsNames:
+  - prometheus.cluster.com
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: prometheus-iroute
+  namespace: monitoring
+  annotations:
+    cert-manager.io/issuer: "vault-issuer"
+spec:
+  entryPoints:
+    - websecure
+    - web
+  routes:
+    - match: Host(`prometheus.cluster.com`) 
+      kind: Rule
+      services:
+        - name: prometheus-service
+          port: 8080
+  tls:
+    secretName: ingress-local-cert
+---
+# Create a secret for IngressRoute (cd traefik folder):
+# -------
+#     k create secret tls ingress-local-cert --cert=ingress-cluster-public.crt --key=ingress-cluster-com.key -n monitoring
+#Add DNS resolver
+#     sudo vim /etc/hosts
+#     172.28.0.225    prometheus.cluster.com
