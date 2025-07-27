@@ -46,6 +46,5 @@ Create IngressRoute. Remember to update /etc/hosts with appropriate domain:
     kubectl create -f 10-sonar-ingress.yml
 Access https://sonar.cluster.com in your browser. Default Credentials for Sonarqube:
 -------
-    UserName: admin
-    PassWord: admin
+
   

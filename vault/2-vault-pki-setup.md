@@ -133,6 +133,11 @@ vault write auth/kubernetes/role/applion-role \
   policies=pki \
   ttl=1h
 
+vault write auth/kubernetes/role/prometheus-role \
+  bound_service_account_names=prometheus-sa \
+  bound_service_account_namespaces=monitoring \
+  policies=pki \
+  ttl=1h
 
 It will not work untill we set up Vault Authentication Method. How to choose one, depends on your environment. My Vault server is running inside the Kubernetes cluster, so i go with Kubernetes Auth
 ### Kubernetes Auth as Vault Authentication Method
@@ -164,7 +169,7 @@ To use cert-manager with Traefik’s IngressRoute for automatic TLS cert provisi
 ![alt text](image.png)
 
 Create a certificate referencing non-existing secret
-k create -f certificate.yaml
+k create -f vault/certificate.yaml
 
 Update your IngressRoute by adding annotation to reference cert manager and that non-existing secret reference:
     annotations:

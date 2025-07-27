@@ -123,7 +123,7 @@ kubectl exec -n $VAULT_K8S_NAMESPACE vault-0 -- vault write auth/vso/role/auth-r
    audience=vault
 
 ------------------
-Static secrets:
+# Static secrets:
 vault auth enable -path auth-mount kubernetes
 
 vault write auth/auth-mount/config \

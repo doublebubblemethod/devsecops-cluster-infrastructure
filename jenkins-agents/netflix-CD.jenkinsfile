@@ -1,0 +1,47 @@
+pipeline {
+    agent any
+    tools {
+        jdk 'jdk17'
+        nodejs 'node16'
+    }
+    stages {
+        stage('Checkout from Git') {
+            steps {
+                git branch: 'main', url: 'https://github.com/doublebubblemethod/petclinic-orchestrated.git'
+            }
+        }
+        stage('Docker Build & Push') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
+                        // Build Docker image with necessary environment variables
+                        sh "docker build --build-arg TMDB_V3_API_KEY=<your_tmdb_api_key> -t netflix ."
+                        sh "docker tag netflix nasi101/netflix:latest"
+                        sh "docker push nasi101/netflix:latest"
+                    }
+                }
+            }
+        }
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    // Kubernetes deployment
+                    withKubeConfig(credentialsId: 'k8s-prod', serverUrl: 'https://your-k8s-cluster-url', namespace: 'prod') {
+                        sh 'kubectl apply -f k8s/deployment.yml'
+                        sh 'kubectl apply -f k8s/service.yml'
+                    }
+                }
+            }
+        }
+    }
+    post {
+        success {
+            echo 'CD pipeline completed successfully!'
+        }
+        failure {
+            echo 'CD pipeline failed.'
+        }
+    }
+}
+
+

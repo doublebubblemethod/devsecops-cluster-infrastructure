@@ -20,6 +20,6 @@
 2. Database for the Application (MySQL/PostgreSQL)
     Deploying the Database in Kubernetes. You should create a Kubernetes Pod or Deployment for the database (either MySQL or PostgreSQL). 
 
-    Expose the database with a Kubernetes Service 
-
-    Set Up Database Configuration in Jenkinsfile that allow your Spring application to connect to the database (e.g., MYSQL_HOST and MYSQL_PASSWORD).
+3. Create Approle role and policy in Vault and add this secret in jenkins credential menager
+4. Setup Jenkins Build Agents on Kubernetes Pods using your home-made jenkins-inbound-agent docker image with vault CA cert and mvn tool
+5. In sonarqube create a token and copy generated mvn command:

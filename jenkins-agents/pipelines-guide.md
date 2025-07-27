@@ -1,4 +1,5 @@
 # Create pipelines for Netflix app
+https://github.com/doublebubblemethod/petclinic-orchestrated.git
 It is generally recommended to separate the concerns of CI (Continuous Integration) and CD (Continuous Deployment) into distinct pipelines or stages:
     1. Separation of Concerns
     2. Clarity
@@ -37,3 +38,18 @@ SonarQube's Built-in Quality Gate (Default) comes with:
     No New Blocker or Critical Issues
     No New Bugs
     No New Code Smells
+
+
+ ERRORS efd4008b-16ce-6c99-46b9-d1c4889aa81f
+ 
++ /home/jenkins/agent/tools/hudson.plugins.sonar.SonarRunnerInstallation/sonar-scanner/bin/sonar-scanner -Dsonar.projectName=Petclinc -Dsonar.projectKey=Petclinc
+12:29:32.832 INFO  Scanner configuration file: /home/jenkins/agent/tools/hudson.plugins.sonar.SonarRunnerInstallation/sonar-scanner/conf/sonar-scanner.properties
+12:29:32.837 INFO  Project root configuration file: NONE
+12:29:32.851 INFO  SonarScanner CLI 7.1.0.4889
+12:29:32.853 INFO  Java 17.0.8.1 Eclipse Adoptium (64-bit)
+12:29:32.853 INFO  Linux 6.11.0-29-generic amd64
+12:29:32.885 INFO  User cache: /home/jenkins/.sonar/cache
+12:29:38.569 ERROR Failed to query server version: Call to URL [https://sonar-service.sonar.svc.cluster.local/api/v2/analysis/version] failed: Connect timed out
+12:29:38.569 INFO  EXECUTION FAILURE
+12:29:38.571 INFO  Total time: 5.774s
+

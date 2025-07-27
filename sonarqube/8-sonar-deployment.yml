@@ -15,9 +15,32 @@ spec:
       labels:
         app: sonarqube
     spec:
+      initContainers:
+        - name: fix-permissions
+          image: busybox:latest
+          command:
+            - sh
+            - -c
+            - |
+              chown -R 1001:1001 /opt/bitnami/sonarqube/data \
+                         /opt/bitnami/sonarqube/extensions \
+                         /opt/bitnami/sonarqube/logs
+              chmod -R u+rwX /opt/bitnami/sonarqube/data \
+                              /opt/bitnami/sonarqube/extensions \
+                              /opt/bitnami/sonarqube/logs
+              # rm -r opt/bitnami/sonarqube/data/es8
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - mountPath: /opt/bitnami/sonarqube/data
+              name: sonar-data
+            - mountPath: /opt/bitnami/sonarqube/extensions
+              name: sonar-extensions
+            - mountPath: /opt/bitnami/sonarqube/logs
+              name: sonar-logs
       containers:
         - name: sonarqube
-          image: sonarqube:7.1
+          image: bitnami/sonarqube:25
           resources:
             requests:
               cpu: 500m
@@ -25,23 +48,44 @@ spec:
             limits:
               cpu: 2000m
               memory: 2048Mi
+          securityContext:
+            runAsGroup: 1001
+            runAsUser: 1001
           volumeMounts:
-          - mountPath: "/opt/sonarqube/data/"
+          - mountPath: "/opt/bitnami/sonarqube/data"
             name: sonar-data
-          - mountPath: "/opt/sonarqube/extensions/"
+          - mountPath: "/opt/bitnami/sonarqube/extensions"
             name: sonar-extensions
+          - mountPath: /opt/bitnami/sonarqube/logs
+            name: sonar-logs
           env:
-          - name: "SONARQUBE_JDBC_USERNAME"
+          - name: SONARQUBE_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: postgres-secrets
+                key: sonar-user
+          - name: SONARQUBE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: postgres-secrets
+                key: password
+          - name: SONARQUBE_DATABASE_HOST
+            value: "postgres"
+          - name: SONARQUBE_DATABASE_PORT_NUMBER
+            value: "5432"
+          - name: SONARQUBE_DATABASE_NAME
+            value: "postgres"
+          - name: "SONARQUBE_DATABASE_USER"
             valueFrom:
                secretKeyRef:
                  name: postgres-secrets
                  key: username
-          - name: "SONARQUBE_JDBC_URL"
-            valueFrom:
-              configMapKeyRef:
-                name: sonar-config
-                key: url
-          - name: "SONARQUBE_JDBC_PASSWORD"
+          # - name: "SONARQUBE_JDBC_URL"
+          #   valueFrom:
+          #     configMapKeyRef:
+          #       name: sonar-config
+          #       key: url
+          - name: "SONARQUBE_DATABASE_PASSWORD"
             valueFrom:
                secretKeyRef:
                  name: postgres-secrets
@@ -56,6 +100,8 @@ spec:
       - name: sonar-extensions
         persistentVolumeClaim:
           claimName: sonar-extensions-nfs-pvc
+      - name: sonar-logs
+        emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
