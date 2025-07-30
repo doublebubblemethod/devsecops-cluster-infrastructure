@@ -14,7 +14,7 @@ data:
         expr: sum(container_memory_usage_bytes) > 1
         for: 1m
         labels:
-          severity: slack
+          severity: high
         annotations:
           summary: High Memory Usage
   prometheus.yml: |-
@@ -135,3 +135,7 @@ data:
         - source_labels: [__meta_kubernetes_service_name]
           action: replace
           target_label: kubernetes_name
+      - job_name: "Jenkins Job"
+        metrics_path: '/prometheus/'
+        static_configs:
+          - targets: ["jenkins-service.jenkins.svc.cluster.local:8080"]

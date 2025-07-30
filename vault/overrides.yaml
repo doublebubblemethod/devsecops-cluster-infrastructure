@@ -13,6 +13,7 @@ injector:
 ui:
   enabled: true
 server:
+  updateStrategyType: "RollingUpdate"
   resources:
     requests:
       memory: 256Mi
@@ -30,8 +31,17 @@ server:
         defaultMode: 420
         secretName: vault-ha-tls
   volumeMounts:
-    - mountPath: /vault/userconfig/vault-ha-tls
-      name: userconfig-vault-ha-tls
+    - name: userconfig-vault-ha-tls
+      mountPath: /vault/userconfig/vault-ha-tls/vault.ca
+      subPath: vault.ca
+      readOnly: true
+    - name: userconfig-vault-ha-tls
+      mountPath: /vault/userconfig/vault-ha-tls/vault.crt
+      subPath: vault.crt
+      readOnly: true
+    - name: userconfig-vault-ha-tls
+      mountPath: /vault/userconfig/vault-ha-tls/vault.key
+      subPath: vault.key
       readOnly: true
   auditStorage:
     enabled: true
