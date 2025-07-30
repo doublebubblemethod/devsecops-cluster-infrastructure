@@ -62,9 +62,14 @@ server:
            cluster_address = "[::]:8201"
            tls_cert_file = "/vault/userconfig/vault-ha-tls/vault.crt"
            tls_key_file  = "/vault/userconfig/vault-ha-tls/vault.key"
+           telemetry {
+              unauthenticated_metrics_access = true
+            }
         }
         storage "raft" {
            path = "/vault/data"
         }
         disable_mlock = true
         service_registration "kubernetes" {}        
+serverTelemetry:
+  prometheusOperator: true 

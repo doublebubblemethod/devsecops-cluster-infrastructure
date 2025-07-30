@@ -44,45 +44,16 @@ vault write pki/roles/cluster-dot-com \
     Reponse: {
         Key                                   Value
         ---                                   -----
-        allow_any_name                        false
-        allow_bare_domains                    false
-        allow_glob_domains                    false
         allow_ip_sans                         true
         allow_localhost                       true
         allow_subdomains                      true
         allow_token_displayname               false
         allow_wildcard_certificates           true
         allowed_domains                       [cluster.com]
-        allowed_domains_template              false
-        allowed_other_sans                    []
-        allowed_serial_numbers                []
-        allowed_uri_sans                      []
-        allowed_uri_sans_template             false
-        allowed_user_ids                      []
-        basic_constraints_valid_for_non_ca    false
-        client_flag                           true
-        cn_validations                        [email hostname]
-        code_signing_flag                     false
-        country                               []
-        email_protection_flag                 false
-        enforce_hostnames                     true
-        ext_key_usage                         []
-        ext_key_usage_oids                    []
-        generate_lease                        false
-        issuer_ref                            default
-        key_bits                              2048
-        key_type                              rsa
-        key_usage                             [DigitalSignature KeyAgreement KeyEncipherment]
-        locality                              []
         max_ttl                               72h
         no_store                              false
         not_after                             n/a
         not_before_duration                   30s
-        organization                          []
-        ou                                    []
-        policy_identifiers                    []
-        postal_code                           []
-        province                              []
         require_cn                            false
         serial_number_source                  json-csr
         server_flag                           true
@@ -91,7 +62,6 @@ vault write pki/roles/cluster-dot-com \
         ttl                                   0s
         use_csr_common_name                   true
         use_csr_sans                          true
-        use_pss                               false
     }
 Create ACL policies
 The following policy grants permissions to use the PKI engine:

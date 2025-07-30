@@ -28,7 +28,7 @@ spec:
         caBundleSecretRef:
             name: tls-ca
             key: ca.crt
-        server: https://vault-1.vault-internal.vault.svc.cluster.local:8200
+        server: https://vault-0.vault-internal.vault.svc.cluster.local:8200
         path: pki/sign/cluster-dot-com
         auth:
             kubernetes:
@@ -66,7 +66,7 @@ spec:
     - match: Host(`grafana.cluster.com`) 
       kind: Rule
       services:
-        - name: grafana
-          port: 3000
+        - name: prometheus-grafana
+          port: 80
   tls:
-    secretName: ingress-local-cert
+    secretName: grafana-tls-cert #ingress-local-cert

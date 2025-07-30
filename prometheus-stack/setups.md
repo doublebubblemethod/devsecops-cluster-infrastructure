@@ -25,7 +25,6 @@ If the storage is dedicated and still fails:
 
 kubectl exec pod/prometheus-<id> -- rm /prometheus/lock
 
-
 ## Alertmanager
 Create a Kubernetes Secret containing your password file
 
@@ -69,87 +68,39 @@ The first thing you can try is to enable Write-Ahead Logging (WAL). In grafana.i
 ```   
 This should only be changed if enabling WAL is not possible for you. From their official documentation, SQLite claims it’s obsolete.
 
-{
-  "id": 4,
-  "type": "stat",
-  "title": "Used",
-  "gridPos": {
-    "x": 0,
-    "y": 5,
-    "h": 3,
-    "w": 4
-  },
-  "fieldConfig": {
-    "defaults": {
-      "mappings": [
-        {
-          "type": "special",
-          "options": {
-            "match": "null",
-            "result": {
-              "text": "N/A"
-            }
-          }
-        }
-      ],
-      "thresholds": {
-        "mode": "absolute",
-        "steps": [
-          {
-            "value": null,
-            "color": "green"
-          },
-          {
-            "value": 80,
-            "color": "red"
-          }
-        ]
-      },
-      "unit": "bytes"
-    },
-    "overrides": []
-  },
-  "pluginVersion": "12.2.0-16557133545",
-  "targets": [
-    {
-      "expr": "sum(
-      container_memory_working_set_bytes{
-      pod=~"^$Deployment.*$",
-      kubernetes_io_hostname=~"^tools-.*$",
-      container!="POD",
-      container!=""
-    }
-    ) by (pod, namespace)",
-      "format": "time_series",
-      "intervalFactor": 2,
-      "refId": "A",
-      "step": 1800,
-      "datasource": {
-        "uid": "P1809F7CD0C75ACF3",
-        "type": "prometheus"
-      }
-    }
-  ],
-  "maxDataPoints": 100,
-  "datasource": {
-    "uid": "P1809F7CD0C75ACF3",
-    "type": "prometheus"
-  },
-  "options": {
-    "reduceOptions": {
-      "values": false,
-      "calcs": [
-        "lastNotNull"
-      ],
-      "fields": ""
-    },
-    "orientation": "horizontal",
-    "textMode": "auto",
-    "wideLayout": true,
-    "colorMode": "none",
-    "graphMode": "none",
-    "justifyMode": "auto",
-    "showPercentChange": false,
-    "percentChangeColorMode": "standard"
+## Vault scraping
+1. Enable k8s service account to use a jwt token to auth to vault and access sys/metrics endpoint:
+Add "prometheus" policy in vault acl policies UI:
+```
+  path "sys/metrics*"
+  {
+    capabilities = ["read", "list"]
   }
-}
+```   
+```kubectl exec -n "$VAULT_K8S_NAMESPACE" vault-0 -- \
+  vault write auth/kubernetes/role/prometheus \
+    bound_service_account_names="k8mon-prometheus" \
+    bound_service_account_namespaces="monitoring" \
+    policies="prometheus" \
+    ttl="1h"
+```   
+create vault-agent-config.hcl file
+```
+kubectl create configmap -n monitoring vault-agent-config \
+  --from-file=./vault-agent-config.hcl
+```
+check if correct:  
+`kubectl get -n monitoring configmap vault-agent-config -o yaml`  
+
+Add the Vault agent as a Prometheus sidecar:
+--------------------
+### Vault Secret Operatpr scraping
+`kubectl get prometheus -n monitoring`  
+i got > `k8mon-prometheus`  
+`kubectl get prometheus -n monitoring k8mon-prometheus -o=jsonpath='{.spec.serviceMonitorSelector}'`  
+i got > `{"matchLabels":{"release":"prometheus"}}`  
+
+To do:
+1. vault ha scraping
+2. kube-system ns scraping ? fail :/
+3. 

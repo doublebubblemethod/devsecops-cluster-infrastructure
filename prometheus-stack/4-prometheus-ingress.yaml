@@ -76,10 +76,10 @@ spec:
     - match: Host(`prometheus.cluster.com`) 
       kind: Rule
       services:
-        - name: prometheus-service
-          port: 8080
+        - name: k8mon-prometheus
+          port: 9090
   tls:
-    secretName: ingress-local-cert
+    secretName: prometheus-tls-cert
 ---
 # Create a secret for IngressRoute (cd traefik folder):
 # -------
