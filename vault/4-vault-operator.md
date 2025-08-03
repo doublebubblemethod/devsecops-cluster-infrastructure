@@ -129,7 +129,8 @@ vault auth enable -path auth-mount kubernetes
 vault write auth/auth-mount/config \
    kubernetes_host="https://10.96.0.1:443"
 
-vault write auth/auth-mount/role/pet-role \
+kubectl exec -n $VAULT_K8S_NAMESPACE vault-0 -- \
+   vault write auth/auth-mount/role/pet-role \
    bound_service_account_names=static-secrets \
    bound_service_account_namespaces=application \
    policies=injector-policy \
@@ -137,6 +138,14 @@ vault write auth/auth-mount/role/pet-role \
    ttl=24h
 
 k create -f application/vso-auth-static.yaml
+
+kubectl exec -n $VAULT_K8S_NAMESPACE vault-0 -- \
+   vault write auth/auth-mount/role/sonar-vso-role \
+   bound_service_account_names=vso-secrets \
+   bound_service_account_namespaces=sonar \
+   policies=vso-sonar \
+   audience=vault \
+   ttl=24h
 
 check if the secret was created; If so, refer to it in a deployment at spec.template.spec block
    ```env:

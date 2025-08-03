@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: sonar
+  name: vso-secrets
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultConnection
+metadata:
+  name: default-connection
+  namespace: sonar
+spec:
+  address: https://vault-1.vault-internal.vault.svc.cluster.local:8200
+  skipTLSVerify: false
+  caCertSecretRef: "tls-ca"
+  tlsServerName: vault-1.vault-internal.vault.svc.cluster.local
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultAuth
+metadata:
+  name: static-auth
+  namespace: sonar
+spec:
+  method: kubernetes
+  mount: auth-mount
+  kubernetes:
+    role: sonar-vso-role
+    serviceAccount: vso-secrets
+    audiences:
+      - vault
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: vault-kv
+  namespace: sonar
+spec:
+  type: kv-v2
+  mount: secrets   # mount path
+  path: sonarqube # path of the secret
+  refreshAfter: 30s   # static secret refresh interval
+  vaultAuthRef: static-auth   # Name of the CRD to authenticate to Vault
+  destination:   # dest k8s secret
+    name: static-sonar-secret
+    create: true
+
+        
+  

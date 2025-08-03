@@ -40,7 +40,7 @@ spec:
               name: sonar-logs
       containers:
         - name: sonarqube
-          image: bitnami/sonarqube:25
+          image: bitnami/sonarqube:10.7.0
           resources:
             requests:
               cpu: 500m
@@ -48,7 +48,7 @@ spec:
             limits:
               cpu: 2000m
               memory: 2048Mi
-          securityContext:
+          securityContext: #uid=1001(sonarqube) gid=1001(sonarqube) groups=1001(sonarqube),0(root)
             runAsGroup: 1001
             runAsUser: 1001
           volumeMounts:
@@ -59,18 +59,20 @@ spec:
           - mountPath: /opt/bitnami/sonarqube/logs
             name: sonar-logs
           env:
+          - name: SONAR_JDBC_URL
+            value: jdbc:postgresql://postgres.sonar.svc.cluster.local:5432/postgres
           - name: SONARQUBE_USERNAME
             valueFrom:
               secretKeyRef:
                 name: postgres-secrets
-                key: sonar-user
+                key: "sonar-user"
           - name: SONARQUBE_PASSWORD
             valueFrom:
               secretKeyRef:
-                name: postgres-secrets
-                key: password
+                name: static-sonar-secret
+                key: "sonar-password"
           - name: SONARQUBE_DATABASE_HOST
-            value: "postgres"
+            value: "postgres.sonar.svc.cluster.local"
           - name: SONARQUBE_DATABASE_PORT_NUMBER
             value: "5432"
           - name: SONARQUBE_DATABASE_NAME
@@ -78,8 +80,8 @@ spec:
           - name: "SONARQUBE_DATABASE_USER"
             valueFrom:
                secretKeyRef:
-                 name: postgres-secrets
-                 key: username
+                 name: static-sonar-secret
+                 key: "JDBC_USERNAME"
           # - name: "SONARQUBE_JDBC_URL"
           #   valueFrom:
           #     configMapKeyRef:
@@ -88,8 +90,8 @@ spec:
           - name: "SONARQUBE_DATABASE_PASSWORD"
             valueFrom:
                secretKeyRef:
-                 name: postgres-secrets
-                 key: password
+                 name: static-sonar-secret
+                 key: "JDBC_PASSWORD"
           ports:
           - containerPort: 9000
             protocol: TCP

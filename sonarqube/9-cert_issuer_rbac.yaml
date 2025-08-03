@@ -42,22 +42,65 @@ spec:
   dnsNames:
   - sonar.cluster.com
 ---
+# Maybe it is from another authentication method, but i use only Service account way
+#
+# apiVersion: v1
+# kind: Secret
+# metadata:
+#     name: issuer-token
+#     namespace: sonar
+#     annotations:
+#         kubernetes.io/service-account.name: sonar-sa
+# type: kubernetes.io/service-account-token
+# ---
+apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
-    name: vault-issuer
-    namespace: sonar
+  name: vault-issuer
+  namespace: sonar
 spec:
-    vault:
-        caBundleSecretRef:
-            name: tls-ca
-            key: ca.crt
-        server: https://vault-1.vault-internal.vault.svc.cluster.local:8200
-        path: pki/sign/cluster-dot-com
-        auth:
-            kubernetes:
-                mountPath: /v1/auth/kubernetes
-                role: sonar-role
-                serviceAccountRef:
-                    name: sonar-sa
+  vault:
+    caBundleSecretRef:
+      name: tls-ca
+      key: ca.crt
+    server: https://vault-0.vault-internal.vault.svc.cluster.local:8200
+    path: pki/sign/cluster-dot-com
+    auth:
+      kubernetes:
+        mountPath: /v1/auth/kubernetes
+        role: sonar-role
+        serviceAccountRef:
+          name: sonar-sa
+          # added another audience to sonar-role in Vault;
+          # ?? audiences: [ "https://kubernetes.default.svc.cluster.local" ]
 
+# Approle authentication method (instead of creating service accounts), also worked for me  
+# apiVersion: v1
+# kind: Secret
+# type: Opaque
+# metadata:
+#   name: cert-manager-vault-approle
+#   namespace: sonar
+# data:
+#   secretId: <secretId from your approle role>
+# ---
+# apiVersion: cert-manager.io/v1
+# kind: Issuer
+# metadata:
+#   name: vault-issuer
+#   namespace: sonar
+# spec:
+#   vault:
+#     caBundleSecretRef:
+#       name: tls-ca
+#       key: ca.crt
+#     server: https://vault-0.vault-internal.vault.svc.cluster.local:8200
+#     path: pki/sign/cluster-dot-com
+#     auth:
+#       appRole:
+#         path: approle
+#         roleId: 0f2ce093-1a4f-a838-15d4-e695847ae2de
+#         secretRef:
+#           name: cert-manager-vault-approle
+#           key: secretId 
 

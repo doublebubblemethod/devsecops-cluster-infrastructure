@@ -88,6 +88,7 @@ vault write auth/kubernetes/role/jenkins-role \
 vault write auth/kubernetes/role/sonar-role \
   bound_service_account_names=sonar-sa \
   bound_service_account_namespaces=sonar \
+  audience="vault://sonar/vault-issuer" \
   policies=pki \
   ttl=1h
 
@@ -114,7 +115,11 @@ vault write auth/kubernetes/role/grafana-role \
   bound_service_account_namespaces=monitoring \
   policies=pki \
   ttl=1h
+The audience allows you to restrict the Vault role to a single Issuer or ClusterIssuer. The syntax is the following:
 
+"vault://<namespace>/<issuer-name>"   # For an Issuer.
+"vault://<cluster-issuer-name>"       # For a ClusterIssuer.
+like "https://kubernetes.default.svc.cluster.local"
 It will not work untill we set up Vault Authentication Method. How to choose one, depends on your environment. My Vault server is running inside the Kubernetes cluster, so i go with Kubernetes Auth
 ### Kubernetes Auth as Vault Authentication Method
 The Kubernetes auth method requires a token_reviewer_jwt, which is a JWT token that is used by Vault to call the TokenReview API of the Kubernetes API server. This endpoint is then used to verify the JWT token that is provided by cert-manager. 
@@ -123,11 +128,11 @@ This token_reviewer_jwt token can be provided by the Kubernetes service account 
 vault auth enable kubernetes 
 
 vault write auth/kubernetes/config \
-  token_reviewer_jwt="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" \
-  kubernetes_host="https://$KUBERNETES_PORT_443_TCP_ADDR:443" \
+  kubernetes_host=<kubernetes-api-server-url> \
   kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
 
 (P.S. this also important for VSO integration in the future)
+(removed `token_reviewer_jwt="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" \`)
 -----------------
 Let's go back to our cluster-side config
 
@@ -145,7 +150,7 @@ To use cert-manager with Traefik’s IngressRoute for automatic TLS cert provisi
 ![alt text](image.png)
 
 Create a certificate referencing non-existing secret
-k create -f vault/certificate.yaml
+`k create -f jenkins-agents/certificate.yaml`
 
 Update your IngressRoute by adding annotation to reference cert manager and that non-existing secret reference:
     annotations:
@@ -171,3 +176,53 @@ kubectl get secret jenkins-tls-cert -n jenkins -o jsonpath='{.data.ca\.crt}' | b
 
 Check if your browser has corrct certificate:
 echo | openssl s_client -connect jenkins.cluster.com:443 -servername jenkins.cluster.com | openssl x509 -noout -issuer -subject -dates
+
+Troubleshoot Issuer 403 status:
+
+export JWT="<token>"
+
+cat > /tmp/login.json <<EOF
+{ "role": "sonar-role", "jwt": "${JWT}" }
+EOF
+
+cat > issuerca.crt <<EOF
+-----BEGIN CERTIFICATE-----
+    <kubernetes cert>
+-----END CERTIFICATE-----
+EOF
+1. check audience:
+curl --fail --cacert issuerca.crt \
+  --header "Content-Type: application/json" \
+  --data @"/tmp/login.json" https://vault‑0.vault‑internal.vault.svc.cluster.local:8200/v1/auth/kubernetes/login
+output > `{"errors":["permission denied"]}`
+
+2. Perform TokenReview API request outside vault (e.g. below) :
+`curl -kv -X "POST" "https://$KUBERNETES_PORT_443_TCP_ADDR:443/apis/authentication.k8s.io/v1/tokenreviews" \
+   -H 'Authorization: Bearer $JWT' \
+   -H 'Content-Type: application/json; charset=utf-8' \
+   -d $'{
+     "kind": "TokenReview",
+     "apiVersion": "authentication.k8s.io/v1",
+     "spec": {
+        "token": "$JWT" 
+             }
+       }'`
+
+Case: inm Vault logs WARN sonar-role withoput audience
+1. take JWT token => export to JWT variable
+2. use the following command:  
+```  
+  echo "${JWT}" | cut -d. -f2 | \
+        jq -R "@base64d | fromjson | {iss,aud}"
+  {
+    "iss": "kubernetes/serviceaccount",
+    "aud": null
+  }
+```   
+output: 
+```
+  {
+    "iss": "kubernetes/serviceaccount",
+    "aud": null
+  }
+```

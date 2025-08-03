@@ -1,0 +1,33 @@
+audit:
+    logConnections: true
+auth:
+  enablePostgresUser: true
+  username: "sonaruser0910"
+  database: "sonarsql"
+  replicationUsername: repl_user
+  existingSecret: "static-sonar-secret"
+  secretKeys:
+    adminPasswordKey: POSTGRES_ADMIN_PASSWORD # is the same as postgresPassword == admin user "postgres"
+    userPasswordKey: JDBC_PASSWORD
+    replicationPasswordKey: POSTGRES_REPLICAT_PASSWORD
+  ## @param auth.usePasswordFiles Mount credentials as a files instead of using an environment variable
+  ##
+  usePasswordFiles: false
+
+fullnameOverride: "postgres-qube"
+
+primary:
+  service:
+    labels:
+      release: "prometheus"
+  persistence:
+    enabled: true
+    existingClaim: "postgres-nfs-pvc" # for volumeName: "data" + mountPath: /bitnami/postgresql
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: "prometheus"  
+      

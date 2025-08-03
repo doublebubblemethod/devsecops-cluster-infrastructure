@@ -53,3 +53,30 @@ SonarQube's Built-in Quality Gate (Default) comes with:
 12:29:38.569 INFO  EXECUTION FAILURE
 12:29:38.571 INFO  Total time: 5.774s
 
+Create a GitHub Webhook
+
+Create a Webhook in your repository to trigger the Jenkins job on push. You may skip this step if you already have a Webhook configured.
+
+    Go to the GitHub Webhook creation page for your repository and enter the following information:
+
+        URL: Enter the following URL, replacing the values between *** as needed:
+
+    ***JENKINS_SERVER_URL***/job/***JENKINS_JOB_NAME***/build?token=***JENKINS_BUILD_TRIGGER_TOKEN***
+
+Under Which events would you like to trigger this webhook? select Let me select individual events and check the following:
+
+    Pushes
+
+Click Add webhook.
+Sonarqube recommendarion: 
+"node {
+  stage('SCM') {
+    checkout scm
+  }
+  stage('SonarQube Analysis') {
+    def mvn = tool 'Default Maven';
+    withSonarQubeEnv() {
+      sh "${mvn}/bin/mvn clean verify sonar:sonar -Dsonar.projectKey=Petclinic -Dsonar.projectName='Petclinic'"
+    }
+  }
+}"

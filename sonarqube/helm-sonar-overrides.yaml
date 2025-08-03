@@ -1,0 +1,102 @@
+###############################################################
+###
+### WAS NOT DEPLOYED
+### ELASTIC WAS CRASHING, CONNECTON TO PORT 9001 REFUSED
+###
+###############################################################
+deploymentType: "Deployment"
+replicaCount: 1
+revisionHistoryLimit: 5
+deploymentStrategy:
+  type: Recreate
+community:
+  enabled: true
+  buildNumber: "25.7.0.110598"
+image:
+  repository: sonarqube
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  externalPort: 9000
+  internalPort: 9000
+
+# Optionally create Network Policies
+networkPolicy:
+  enabled: true
+  # If you plan on using the jmx exporter, you need to define where the traffic is coming from
+  prometheusNamespace: "monitoring"
+
+readinessProbe:
+  initialDelaySeconds: 300
+  periodSeconds: 30
+  failureThreshold: 6
+  # Note that timeoutSeconds was not respected before Kubernetes 1.20 for exec probes
+  timeoutSeconds: 1
+livenessProbe:
+  initialDelaySeconds: 300
+  periodSeconds: 30
+  failureThreshold: 6
+  # Note that timeoutSeconds was not respected before Kubernetes 1.20 for exec probes
+  timeoutSeconds: 1
+startupProbe:
+  initialDelaySeconds: 300
+  periodSeconds: 10
+  failureThreshold: 24
+  # Note that timeoutSeconds was not respected before Kubernetes 1.20 for exec probes
+  timeoutSeconds: 1
+
+prometheusExporter:
+  enabled: true
+  # Alternative full download URL for the jmx_prometheus_javaagent.jar (overrides prometheusExporter.version)
+  downloadURL: "https://repo.maven.apache.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/1.0.1/jmx_prometheus_javaagent-1.0.1.jar"
+  # if you need to ignore TLS certificates for whatever reason enable the following flag
+  noCheckCertificate: false
+  config:
+    rules:
+      - pattern: ".*"
+
+monitoringPasscodeSecretName: "static-sonar-secret"
+monitoringPasscodeSecretKey: "monitoring-passcode"
+
+## Environment variables to attach to the pods
+##
+env:
+#   # If you use a different ingress path from /, you have to add it here as the value of SONAR_WEB_CONTEXT
+#   - name: SONAR_WEB_CONTEXT
+#     value: /sonarqube
+  - name: "SONAR_ES_BOOTSTRAP_CHECKS_DISABLE"
+    value: "true"
+  - name: "SONAR_SEARCH_JAVA_OPTS"
+    value: "-Xms512m -Xmx512m"
+
+# Additional sonar properties to load from a secret with a key "secret.properties" (must be a string)
+# sonarSecretProperties:
+
+# Kubernetes secret that contains the encryption key for the SonarQube instance.
+# The secret must contain the key 'sonar-secret.txt'.
+# The 'sonar.secretKeyPath' property will be set automatically.
+# sonarSecretKey: "settings-encryption-secret"
+
+## Override JDBC values
+## for external Databases
+jdbcOverwrite:
+  # (DEPRECATED) Please use jdbcOverwrite.enabled instead
+  # If enable the JDBC Overwrite, make sure to set `postgresql.enabled=false`
+  enabled: true
+  # The JDBC url of the external DB
+  jdbcUrl: "jdbc:postgresql://postgres-qube.sonar.svc.cluster.local:5432/sonarsql?useUnicode=true&amp;characterEncoding=utf8"
+  # The DB user that should be used for the JDBC connection
+  jdbcUsername: "sonaruser0910"
+  # Use this if you don't mind the DB password getting stored in plain text within the values file
+  # (DEPRECATED) Please use `jdbcOverwrite.jdbcSecretName` along with `jdbcOverwrite.jdbcSecretPasswordKey` instead
+  #jdbcPassword: "sonarPass"
+  jdbcSecretName: "static-sonar-secret"
+  jdbcSecretPasswordKey: "JDBC_PASSWORD"
+
+
+extraConfig:
+  secrets: 
+    - static-sonar-secret
+postgresql:
+  enabled: false

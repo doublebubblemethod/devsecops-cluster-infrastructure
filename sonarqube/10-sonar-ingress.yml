@@ -13,7 +13,7 @@ spec:
     - match: Host(`sonar.cluster.com`) 
       kind: Rule
       services:
-        - name: sonar-service
-          port: 80
+        - name: sonar-sonarqube
+          port: 9000
   tls:
     secretName: sonar-tls-cert 
