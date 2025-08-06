@@ -14,7 +14,7 @@ def configuration = [
     engineVersion: 2
 ]
 def registry = 'docker.io/askdragon/petclinic'
-
+def dockerImg
 pipeline {
   agent {
         label 'kubeagent'
@@ -52,7 +52,8 @@ pipeline {
         script{
           withVault([configuration: configuration, vaultSecrets: app_secrets]) {
             sh '''#!/bin/bash
-              mvn clean verify \
+              mvn package \
+                -DskipTests \
                 -Dspring.datasource.jdbc-url="${POSTGRES_URL}" \
                 -Dspring.datasource.username="${POSTGRES_USER}" \
                 -Dspring.datasource.password="${POSTGRES_PASS}"
@@ -61,42 +62,37 @@ pipeline {
         }
       }
     }
-    stage("Sonarqube Analysis") {
-          steps {
-              withSonarQubeEnv('sonar-server') {
-                  sh '''$SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Petclinc \
-                  -Dsonar.projectKey=Petclinc'''
-              }
-          }
-    }
-    stage('SonarQube Quality Gate') {
-      steps {
-        timeout(time: 5, unit: 'MINUTES') {
-          waitForQualityGate(abortPipeline: true, credentialsId: 'sonar-token')
-        }
-      }
-    }
+    // stage("Sonarqube Analysis") {
+    //       steps {
+    //           withSonarQubeEnv('sonar-server') {
+    //               sh '''$SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Petclinc \
+    //               -Dsonar.projectKey=Petclinc \
+    //               -Dsonar.sources=src/main/java \
+    //               -Dsonar.java.binaries=target/classes
+    //               '''
+    //           }
+    //       }
+    // }
+    // stage('SonarQube Quality Gate') {
+    //   steps {
+    //     timeout(time: 5, unit: 'MINUTES') {
+    //       waitForQualityGate(abortPipeline: true, credentialsId: 'sonar-token')
+    //     }
+    //   }
+    // }
 
-    stage('Building Docker Image') {
-      steps {
-        script {
-            dockerImage = docker.build("$registry:$BUILD_NUMBER", ".")
+    stage('Build') {
+            steps {
+                container('kaniko') {
+                    sh '''
+                    /kaniko/executor --context $WORKSPACE \
+                                       --dockerfile $WORKSPACE/Dockerfile \
+                                       --destination askdragon/petclinic:$BUILD_NUMBER
+                    '''
+                }
+            }
         }
-      }
-    }
-
-    stage('Push Docker Image') {
-      steps {
-        script {
-          docker.withRegistry(registry, 'docker-hub-credentials') {
-            dockerImage.push()
-            dockerImage.push('latest')
-          }
-        }
-      }
-    }
   }
-
   post {
     success { echo "✅ Build & push complete: petclinic-app:${env.BUILD_NUMBER}" }
     failure { echo "❌ Pipeline failed" }

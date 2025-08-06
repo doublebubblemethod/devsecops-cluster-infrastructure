@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trivy
+  namespace: jenkins
+spec:
+  selector:
+    matchLabels:
+      app: trivy
+  template:
+    metadata:
+      labels:
+        app: trivy
+    spec:
+      containers:
+      - name: trivy
+        image: aquasec/trivy
+        command: ["trivy", "server", "--cache-dir", "/data/cache"]
+        volumeMounts:
+        - name: cache
+          mountPath: /data/cache
+        - mountPath: /run/containerd
+          name: containerd-socket
+          readOnly: true
+      volumes:
+      - name: containerd-socket
+        hostPath:
+          path: /run/containerd/containerd.sock
+          type: Socket
+      - name: cache
+        emptyDir: {}
+
+

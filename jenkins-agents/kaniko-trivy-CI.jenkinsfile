@@ -1,0 +1,72 @@
+pipeline {
+  agent {
+    kubernetes {
+      yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:debug
+    imagePullPolicy: Always
+    command: ["sleep"]
+    args: ["99d"]
+    volumeMounts:
+      - name: kaniko-secret
+        mountPath: /kaniko/.docker
+  - name: trivy
+    image: aquasec/trivy
+    command: ["trivy", "server", "--cache-dir", "/data/cache"]
+    volumeMounts:
+    - name: cache
+      mountPath: /data/cache
+  volumes:
+  - name: cache
+    persistentVolumeClaim:
+      claimName: trivy-pv-claim
+  - name: kaniko-secret
+    projected:
+      sources:
+      - secret:
+          name: kaniko-secret
+          items:
+            - key: .dockerconfigjson
+              path: config.json
+'''
+    }
+  }
+    parameters {
+    string(
+      name: 'APP_CODEBASE',
+      defaultValue: 'https://github.com/doublebubblemethod/petclinic-orchestrated.git',
+      description: 'GIT URL of Petclinic repository'
+    )
+    }
+  stages {
+    stage('Clean Workspace') { steps { cleanWs() } }
+
+    stage('Checkout Code') {
+      steps {
+        git url: "${params.APP_CODEBASE}",
+            branch: 'main'
+      }
+    }
+    stage('Build with Kaniko') {
+      steps {
+        container('kaniko') {
+            sh '''#!/bin/sh -xe
+            pwd; ls -la
+            /kaniko/executor \
+              --dockerfile "$(pwd)/Dockerfile" \
+              --context "$(pwd)" \
+              --destination=askdragon/petclinic:${BUILD_NUMBER}
+            '''
+        }
+      }
+    }
+  }
+  post {
+    success { echo "✅ Done" }
+    failure { echo "❌ Failed" }
+  }
+}
