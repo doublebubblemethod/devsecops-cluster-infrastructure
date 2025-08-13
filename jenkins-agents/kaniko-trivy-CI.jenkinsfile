@@ -11,6 +11,11 @@ spec:
     imagePullPolicy: Always
     command: ["sleep"]
     args: ["99d"]
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+    workdir: /home/jenkins/agent/
     volumeMounts:
       - name: kaniko-secret
         mountPath: /kaniko/.docker
@@ -35,7 +40,7 @@ spec:
 '''
     }
   }
-    parameters {
+  parameters {
     string(
       name: 'APP_CODEBASE',
       defaultValue: 'https://github.com/doublebubblemethod/petclinic-orchestrated.git',
@@ -53,20 +58,44 @@ spec:
     }
     stage('Build with Kaniko') {
       steps {
-        container('kaniko') {
+       container('kaniko') {
             sh '''#!/bin/sh -xe
             pwd; ls -la
-            /kaniko/executor \
+             /kaniko/executor \
               --dockerfile "$(pwd)/Dockerfile" \
               --context "$(pwd)" \
-              --destination=askdragon/petclinic:${BUILD_NUMBER}
+               --destination=askdragon/petclinic:${BUILD_NUMBER}
             '''
         }
       }
     }
+    stage('Scan Docker Image') {
+        steps {
+            container('trivy') {
+            sh '''#!/bin/sh -xe
+                trivy image --docker-host string askdragon/petclinic:17 --output trivy-report-petclinic.txt
+                cat trivy-report-petclinic.txt
+            '''    
+            }
+        }
+    }
+    stage('Archive Trivy Report') {
+        steps {
+            archiveArtifacts artifacts: 'trivy-report-petclinic.txt', allowEmptyArchive: true
+        }
+    }
   }
   post {
-    success { echo "✅ Done" }
+    success { 
+        echo "✅ Done" 
+        emailext attachLog: true,
+        subject: "'${currentBuild.result}'",
+        body: "Project Petclinic: ${env.JOB_NAME}<br/>" +
+              "Build Number: ${env.BUILD_NUMBER}<br/>" +
+              "URL: ${env.BUILD_URL}<br/>",
+        to: 'mercergladys4@gmail.com', attachmentsPattern: 'trivy-report-petclinic.txt'
+    }
+    
     failure { echo "❌ Failed" }
   }
 }

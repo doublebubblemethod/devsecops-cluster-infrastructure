@@ -8,6 +8,7 @@ def app_secrets = [
       ]
     ]
  ]
+
 def configuration = [
     vaultUrl: 'https://vault-1.vault-internal.vault.svc.cluster.local:8200',
     vaultCredentialId: 'jenkins-approle',
@@ -17,7 +18,7 @@ def registry = 'docker.io/askdragon/petclinic'
 def dockerImg
 pipeline {
   agent {
-        label 'kubeagent'
+      label 'kubeagent'
     }
   tools {
     jdk 'jdk17'
@@ -80,19 +81,13 @@ pipeline {
     //     }
     //   }
     // }
-
-    stage('Build') {
-            steps {
-                container('kaniko') {
-                    sh '''
-                    /kaniko/executor --context $WORKSPACE \
-                                       --dockerfile $WORKSPACE/Dockerfile \
-                                       --destination askdragon/petclinic:$BUILD_NUMBER
-                    '''
-                }
-            }
-        }
-  }
+    stage('OWASP Dependencies Scan') {
+        steps {
+        dependencyCheck additionalArguments: '--scan ./target --format TXT', odcInstallation: 'DP-check'
+        dependencyCheckPublisher pattern: '**/dependency-check-report.txt'
+    }
+}
+}
   post {
     success { echo "✅ Build & push complete: petclinic-app:${env.BUILD_NUMBER}" }
     failure { echo "❌ Pipeline failed" }

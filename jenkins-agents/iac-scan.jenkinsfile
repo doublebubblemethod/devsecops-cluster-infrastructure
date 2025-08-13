@@ -1,0 +1,79 @@
+pipeline {
+  agent {
+    kubernetes {
+      yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: trivy
+    image: aquasec/trivy
+    command: ["trivy", "server", "--cache-dir", "/data/cache"]
+    volumeMounts:
+    - name: cache
+      mountPath: /data/cache
+    - name: docker-secret
+      mountPath: /.docker
+  volumes:
+  - name: cache
+    persistentVolumeClaim:
+      claimName: trivy-pv-claim
+  - name: docker-secret
+    projected:
+      sources:
+      - secret:
+          name: kaniko-secret
+          items:
+            - key: .dockerconfigjson
+              path: config.json
+'''
+    }
+  }
+  parameters {
+    string(
+      name: 'INFRA_CODEBASE',
+      defaultValue: 'https://github.com/doublebubblemethod/devsecops-cluster-infrastructure.git',
+      description: 'GIT URL of cluster infrastrure repository'
+    )
+    }
+  stages {
+    stage('Clean Workspace') { steps { cleanWs() } }
+
+    stage('Checkout Code') {
+      steps {
+        git url: "${params.INFRA_CODEBASE}",
+            branch: 'main'
+      }
+    }
+
+    stage('Scan Infrastructure Configuration') {
+        steps {
+            container('trivy') {
+            sh '''#!/bin/sh -xe
+                pwd
+                trivy config . --output trivy-report-infra.txt
+                cat trivy-report-infra.txt
+            '''    
+            }
+        }
+    }
+    stage('Archive Trivy Report') {
+        steps {
+            archiveArtifacts artifacts: 'trivy-report-infra.txt', allowEmptyArchive: true
+        }
+    }
+  }
+  post {
+    success { 
+        echo "✅ Done" 
+        emailext attachLog: true,
+        subject: "Iac Scan: '${currentBuild.result}'",
+        body: "Trivy Scan ${env.JOB_NAME} was SUCCESSFULLY finished<br/>" +
+              "Build Number: ${env.BUILD_NUMBER}<br/>" +
+              "URL: ${env.BUILD_URL}<br/>",
+        to: 'mercergladys4@gmail.com', attachmentsPattern: 'trivy-report-infra.txt'
+    }
+    
+    failure { echo "❌ Failed" }
+  }
+}
