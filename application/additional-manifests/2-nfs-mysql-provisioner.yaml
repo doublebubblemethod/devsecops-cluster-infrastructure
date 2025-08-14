@@ -1,28 +1,28 @@
 kind: Deployment
 apiVersion: apps/v1
 metadata:
-  name: nfs-mysql-provisioner
+  name: nfs-app-provisioner
   namespace: application
   labels:
-    app: nfs-mysql-provisioner
+    app: nfs-app-provisioner
 spec:
   replicas: 1
   strategy:
     type: Recreate
   selector:
     matchLabels:
-      app: nfs-mysql-provisioner
+      app: nfs-app-provisioner
   template:
     metadata:
       labels:
-        app: nfs-mysql-provisioner
+        app: nfs-app-provisioner
     spec:
-      serviceAccountName: nfs-mysql-provisioner
+      serviceAccountName: nfs-app-provisioner
       containers:
-        - name: nfs-mysql-provisioner
+        - name: nfs-app-provisioner
           image: k8s.gcr.io/sig-storage/nfs-subdir-external-provisioner:v4.0.2
           volumeMounts:
-            - name: nfs-mysql-root
+            - name: nfs-app-root
               mountPath: /persistentvolumes
           env:
             - name: PROVISIONER_NAME
@@ -32,7 +32,7 @@ spec:
             - name: NFS_PATH
               value: /var/nfs/k8s
       volumes:
-        - name: nfs-mysql-root
+        - name: nfs-app-root
           nfs:
             server: 192.168.1.179
             path: /var/nfs/k8s

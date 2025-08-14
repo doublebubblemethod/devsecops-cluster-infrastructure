@@ -32,4 +32,4 @@ spec:
                   name: secretkv
                   key: POSTGRES_PASSWORD
             - name: POSTGRES_URL
-              value: jdbc:postgresql://postgres-postgresql.application.svc.cluster.local:5432/postgres
+              value: jdbc:postgresql://postres-postgresql.application.svc.cluster.local:5432/postgres

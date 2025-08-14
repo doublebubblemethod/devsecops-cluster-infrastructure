@@ -1,3 +1,5 @@
+###
+### helm template -n sonar postres bitnami/postgresql --values additional-manifests/postgresql-values.yaml
 audit:
     logConnections: true
 auth:

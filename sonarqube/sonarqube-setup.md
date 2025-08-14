@@ -13,7 +13,7 @@ Create PVC for Postgres using yaml file; Check if it is BOUND;
     helm chart
 log into db to check id database and user account is set up correctly:
 `psql -U sonaruser0910 -d sonarsql`  
-If you access the container using bash, make sure that you execute `"/opt/bitnami/scripts/postgresql/entrypoint.sh /bin/bash"`  in order to avoid the error "psql: local user with ID 1001} does not exist"
+If you access the container using bash, make sure that you execute `/opt/bitnami/scripts/postgresql/entrypoint.sh /bin/bash`  in order to avoid the error "psql: local user with ID 1001} does not exist"
 
 check if client connection works:
 `kubectl run postgres-qube-client --rm --tty -i --restart='Never' --namespace sonar --image docker.io/bi
