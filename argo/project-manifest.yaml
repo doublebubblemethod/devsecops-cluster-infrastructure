@@ -1,0 +1,18 @@
+project: default
+source:
+  repoURL: https://github.com/doublebubblemethod/devsecops-cluster-infrastructure.git
+  path: application
+  targetRevision: HEAD
+  directory:
+    jsonnet:
+      extVars:
+        - name: ''
+          value: ''
+destination:
+  server: https://kubernetes.default.svc
+  namespace: application
+syncPolicy:
+  automated:
+    prune: true
+  syncOptions:
+    - CreateNamespace=true

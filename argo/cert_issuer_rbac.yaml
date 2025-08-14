@@ -38,9 +38,9 @@ spec:
   issuerRef:
     name: vault-issuer
     kind: Issuer
-  commonName: argo.cluster.com
+  commonName: argocd.cluster.com
   dnsNames:
-  - argo.cluster.com        
+  - argocd.cluster.com        
 ---
 apiVersion: cert-manager.io/v1
 kind: Issuer
@@ -73,10 +73,10 @@ spec:
     - websecure
     - web
   routes:
-    - match: Host(`argo.cluster.com`) 
+    - match: Host(`argocd.cluster.com`) 
       kind: Rule
       services:
-        - name: argo-service
-          port: 8080
+        - name: argo-server
+          port: 80
   tls:
     secretName: argo-tls-cert 

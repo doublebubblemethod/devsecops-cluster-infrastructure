@@ -1,3 +1,9 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+    name: application-sa
+    namespace: application
+---
 apiVersion: secrets.hashicorp.com/v1beta1
 kind: VaultConnection
 metadata:

@@ -90,36 +90,36 @@ We can make kaniko build the image in both ways:
 Check out `jenkins-agents/kaniko-trivy-CI.jenkinsfile` to see how i exended jenkins agent manifestation and built a docker image.  
 
 ## Setup E-mail notification
-    1. mercergladys4@gmail.com
-    2. scsm ukke yhhr tyzn
-        LATER CONSIDER:
-        Create a GitHub Webhook
+documentation tbd
+        
+## Further configs   
+Create a GitHub Webhook
 
-        Create a Webhook in your repository to trigger the Jenkins job on push. You may skip this step if you already have a Webhook configured.
+Create a Webhook in your repository to trigger the Jenkins job on push. You may skip this step if you already have a Webhook configured.
 
-            Go to the GitHub Webhook creation page for your repository and enter the following information:
+    Go to the GitHub Webhook creation page for your repository and enter the following information:
 
-                URL: Enter the following URL, replacing the values between *** as needed:
+        URL: Enter the following URL, replacing the values between *** as needed:
 
-            ***JENKINS_SERVER_URL***/job/***JENKINS_JOB_NAME***/build?token=***JENKINS_BUILD_TRIGGER_TOKEN***
+    ***JENKINS_SERVER_URL***/job/***JENKINS_JOB_NAME***/build?token=***JENKINS_BUILD_TRIGGER_TOKEN***
 
-        Under Which events would you like to trigger this webhook? select Let me select individual events and check the following:
+Under Which events would you like to trigger this webhook? select Let me select individual events and check the following:
 
-            Pushes
+    Pushes
 
-        Click Add webhook.
-        Sonarqube recommendarion: 
-        "node {
-        stage('SCM') {
-            checkout scm
-        }
-        stage('SonarQube Analysis') {
-            def mvn = tool 'Default Maven';
-            withSonarQubeEnv() {
-            sh "${mvn}/bin/mvn clean verify sonar:sonar -Dsonar.projectKey=Petclinic -Dsonar.projectName='Petclinic'"
-            }
-        }
-        }"
+Click Add webhook.
+Sonarqube recommendarion: 
+"node {
+stage('SCM') {
+    checkout scm
+}
+stage('SonarQube Analysis') {
+    def mvn = tool 'Default Maven';
+    withSonarQubeEnv() {
+    sh "${mvn}/bin/mvn clean verify sonar:sonar -Dsonar.projectKey=Petclinic -Dsonar.projectName='Petclinic'"
+    }
+}
+}"
 
 
 
