@@ -83,21 +83,11 @@ pipeline {
     // }
     stage('OWASP Dependencies Scan') {
         steps {
-        dependencyCheck additionalArguments: '--scan ./target', odcInstallation: 'DP-check'
-        }
-    }
-    stage('Publish OWASP Dependency Check Report') {
-            steps {
-                publishHTML(target: [
-                    allowMissing: false,
-                    alwaysLinkToLastBuild: true,
-                    keepAll: true,
-                    reportDir: 'target',
-                    reportFiles: 'dependency-check-report.html',
-                    reportName: 'OWASP Dependency Check Report'
-                ])
+                dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-check'
+                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
             }
     }
+
 }
   post {
     success { echo "✅ Build & push complete: petclinic-app:${env.BUILD_NUMBER}" }

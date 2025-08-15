@@ -13,13 +13,18 @@ CI Pipeline (for validating code)
     Push Image: Optionally, push the image to the registry (but only if your pipeline passed all tests).
 
 My CI Pipeline implementation:
-
-    Clean Workspace: Clean the workspace before starting.
-    Checkout from Git: Pull the latest code from your Git repository.
-    Static Analysis: Run code analysis using SonarQube.
-    Quality Gate: Check if the code meets quality standards and Code Coverage ≥ 80%
-    Install Dependencies: Install required dependencies like npm install.
-    Scan container image using Trivy
+    Scan:
+        Clean Workspace: Clean the workspace before starting.
+        Checkout from Git: Pull the latest code from your Git repository.
+        Static Analysis: Run code analysis using SonarQube.
+        Quality Gate: Check if the code meets quality standards and Code Coverage ≥ 80%
+        Owasp Dependency Check
+        Send email notification with buils status
+    Build_and_Push:
+        Build an image using kaniko
+        Scan container image using Trivy
+        Push image to container registry
+        Send email notification with trivy report
 
 
 CD Pipeline (for deploying to different environments)
@@ -73,6 +78,19 @@ stage('OWASP FS SCAN') {
         dependencyCheckPublisher pattern: '**/dependency-check-report.txt'
     }
 }
+[INFO] Analysis Complete (19 seconds)
+
+[INFO] Writing JSON report to: /home/jenkins/agent/workspace/Scan/./dependency-check-report.json
+
+Publish Dependency-Check results**/dependency-check-report.json
+0.28s
+
+Collecting Dependency-Check artifact
+
+Parsing file /home/jenkins/agent/workspace/Scan/dependency-check-report.json
+
+ERROR: Unable to parse /home/jenkins/agent/workspace/Scan/dependency-check-report.json
+
 ## Build Image with Kaniko
 To be able to pull repositories that are private, create a special k8s secret and moun them to the pods:
 ``` kubectl create secret docker-registry kaniko-secret \
