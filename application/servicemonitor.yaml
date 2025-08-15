@@ -11,4 +11,5 @@ spec:
   endpoints:
   - port: http
     path: /actuator/metrics
-    interval: 30s
+    interval: 60s
+    fallback_scrape_protocol: http
