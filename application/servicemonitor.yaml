@@ -10,3 +10,5 @@ spec:
       scraping: app-servicemonitor
   endpoints:
   - port: http
+    path: /actuator/metrics
+    interval: 30s
