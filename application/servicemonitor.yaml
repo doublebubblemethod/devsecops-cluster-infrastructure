@@ -7,6 +7,6 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: example-app
+      scraping: app-servicemonitor
   endpoints:
   - port: http
