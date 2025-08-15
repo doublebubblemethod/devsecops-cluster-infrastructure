@@ -17,7 +17,7 @@ spec:
         - name: regcred
       containers:
         - name: petclinic
-          image: askdragon/petclinic:v2
+          image: askdragon/petclinic:30
           ports:
             - containerPort: 8080
           env:
