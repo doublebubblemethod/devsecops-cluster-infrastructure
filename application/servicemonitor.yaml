@@ -5,7 +5,6 @@ metadata:
   labels:
     release: prometheus
 spec:
-  scrapeClass: springboot-scrape
   selector:
     matchLabels:
       scraping: app-servicemonitor
