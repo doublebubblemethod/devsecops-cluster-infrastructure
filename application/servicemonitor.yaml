@@ -10,5 +10,5 @@ spec:
       scraping: app-servicemonitor
   endpoints:
   - port: http
-    path: /actuator/metrics
+    path: /actuator/prometheus
     interval: 60s

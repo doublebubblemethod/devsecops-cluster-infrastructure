@@ -130,7 +130,14 @@ app.kubernetes.io/name: argocd-metrics`
 So, every namespace and service (or Pod) must have these labels to be scraped
 ![alt text](image-1.png)
 
-To do:
-1. vault ha scraping
-2. kube-system ns scraping ? fail :/
-3. 
+ScrapeClass (did not work for me)
+To scrape petclinic springboot app i needed to resolve this error: 
+  err="received unsupported Content-Type \"application/vnd.spring-boot.actuator.v3+json\" and no fallback_scrape_protocol specified for target"
+edit prometheus CRD and add:
+  spec:
+    scrapeClasses:
+      - fallbackScrapeProtocol: PrometheusText1.0.0
+        name: springboot-scrape
+edit serviceMonitor and add:
+  spec:
+    scrapeClass: springboot-scrape
