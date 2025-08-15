@@ -5,6 +5,7 @@ metadata:
   labels:
     release: prometheus
 spec:
+  scrapeClass: springboot-scrape
   selector:
     matchLabels:
       scraping: app-servicemonitor
@@ -12,4 +13,3 @@ spec:
   - port: http
     path: /actuator/metrics
     interval: 60s
-    fallback_scrape_protocol: http
