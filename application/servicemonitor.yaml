@@ -9,4 +9,4 @@ spec:
     matchLabels:
       app: example-app
   endpoints:
-  - port: 8080
+  - port: http
