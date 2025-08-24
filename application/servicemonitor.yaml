@@ -2,6 +2,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: app-servicemonitor
+  namespace: application
   labels:
     release: prometheus
 spec:

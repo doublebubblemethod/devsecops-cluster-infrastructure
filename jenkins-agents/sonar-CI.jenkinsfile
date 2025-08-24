@@ -63,24 +63,24 @@ pipeline {
         }
       }
     }
-    // stage("Sonarqube Analysis") {
-    //       steps {
-    //           withSonarQubeEnv('sonar-server') {
-    //               sh '''$SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Petclinc \
-    //               -Dsonar.projectKey=Petclinc \
-    //               -Dsonar.sources=src/main/java \
-    //               -Dsonar.java.binaries=target/classes
-    //               '''
-    //           }
-    //       }
-    // }
-    // stage('SonarQube Quality Gate') {
-    //   steps {
-    //     timeout(time: 5, unit: 'MINUTES') {
-    //       waitForQualityGate(abortPipeline: true, credentialsId: 'sonar-token')
-    //     }
-    //   }
-    // }
+    stage("Sonarqube Analysis") {
+          steps {
+              withSonarQubeEnv('sonar-server') {
+                  sh '''$SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Petclinc \
+                  -Dsonar.projectKey=Petclinc \
+                  -Dsonar.sources=src/main/java \
+                  -Dsonar.java.binaries=target/classes
+                  '''
+              }
+          }
+    }
+    stage('SonarQube Quality Gate') {
+      steps {
+        timeout(time: 5, unit: 'MINUTES') {
+          waitForQualityGate(abortPipeline: true, credentialsId: 'sonar-token')
+        }
+      }
+    }
     stage('OWASP Dependencies Scan') {
         steps {
                 dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-check'

@@ -78,12 +78,6 @@ stage('OWASP FS SCAN') {
         dependencyCheckPublisher pattern: '**/dependency-check-report.txt'
     }
 }
-[INFO] Analysis Complete (19 seconds)
-
-[INFO] Writing JSON report to: /home/jenkins/agent/workspace/Scan/./dependency-check-report.json
-
-Publish Dependency-Check results**/dependency-check-report.json
-0.28s
 
 Collecting Dependency-Check artifact
 
@@ -140,5 +134,21 @@ stage('SonarQube Analysis') {
 }"
 
 
+  stage('Maven sonar') {
+      steps {
+        script{
+          withVault([configuration: configuration, vaultSecrets: app_secrets]) {
+            sh '''#!/bin/bash
+              mvn org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+                -Pcoverage
+              '''
+            }
+        }
+      }
+    }
+    [
+ERROR] Failed to query JRE metadata: GET https://api.sonarcloud.io/analysis/jres?os=linux&arch=x86_64 failed with HTTP 401. Please check the property sonar.token or the environment variable SONAR_TOKEN.
 
-
+[
+INFO] 
+----------------------------------------------------------------------
