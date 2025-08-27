@@ -134,21 +134,77 @@ stage('SonarQube Analysis') {
 }"
 
 
-  stage('Maven sonar') {
-      steps {
-        script{
-          withVault([configuration: configuration, vaultSecrets: app_secrets]) {
-            sh '''#!/bin/bash
-              mvn org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
-                -Pcoverage
-              '''
-            }
-        }
-      }
-    }
-    [
-ERROR] Failed to query JRE metadata: GET https://api.sonarcloud.io/analysis/jres?os=linux&arch=x86_64 failed with HTTP 401. Please check the property sonar.token or the environment variable SONAR_TOKEN.
 
-[
-INFO] 
-----------------------------------------------------------------------
+Agent build-and-push-33-zbj0l-x6c6f-7gjm3 is provisioned from template Build_and_Push_33-zbj0l-x6c6f
+---
+apiVersion: "v1"
+kind: "Pod"
+metadata:
+  name: "build-and-push-33-zbj0l-x6c6f-7gjm3"
+  namespace: "jenkins"
+spec:
+  containers:
+  - args:
+    - "99d"
+    command:
+    - "sleep"
+    image: "gcr.io/kaniko-project/executor:debug"
+    imagePullPolicy: "Always"
+    name: "kaniko"
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+    volumeMounts:
+    - mountPath: "/kaniko/.docker"
+      name: "kaniko-secret"
+    - mountPath: "/home/jenkins/agent"
+      name: "workspace-volume"
+      readOnly: false
+    workdir: "/home/jenkins/agent/"
+  - command:
+    - "trivy"
+    - "server"
+    - "--cache-dir"
+    - "/data/cache"
+    image: "aquasec/trivy"
+    name: "trivy"
+    volumeMounts:
+    - mountPath: "/data/cache"
+      name: "cache"
+    - mountPath: "/home/jenkins/agent"
+      name: "workspace-volume"
+      readOnly: false
+    image: "jenkins/inbound-agent:3309.v27b_9314fd1a_4-1"
+    name: "jnlp"
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+    volumeMounts:
+    - mountPath: "/home/jenkins/agent"
+      name: "workspace-volume"
+      readOnly: false
+  nodeSelector:
+    kubernetes.io/os: "linux"
+  restartPolicy: "Never"
+  volumes:
+  - name: "kaniko-secret"
+    projected:
+      sources:
+      - secret:
+          items:
+          - key: ".dockerconfigjson"
+            path: "config.json"
+          name: "kaniko-secret"
+  - name: "cache"
+    persistentVolumeClaim:
+      claimName: "trivy-pv-claim"
+  - emptyDir:
+      medium: ""
+    name: "workspace-volume"
++ /kaniko/executor --dockerfile /home/jenkins/agent/workspace/Build_and_Push/Dockerfile --context /home/jenkins/agent/workspace/Build_and_Push '--destination=askdragon/petclinic:33'
+[36mINFO[0m[0001] Resolved base name eclipse-temurin:17-jdk-alpine to runtime 
+[36mINFO[0m[0001] Retrieving image manifest build              
+[36mINFO[0m[0001] Retrieving image build from registry index.docker.io 
+error building image: unable to complete operation after 0 attempts, last error: GET https://index.docker.io/v2/library/build/manifests/latest: UNAUTHORIZED: authentication required; [map[Action:pull Class: Name:library/build Type:repository]]

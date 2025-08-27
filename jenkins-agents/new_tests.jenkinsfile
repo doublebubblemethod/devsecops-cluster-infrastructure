@@ -35,10 +35,15 @@ pipeline {
       defaultValue: 'https://github.com/doublebubblemethod/petclinic-orchestrated.git',
       description: 'GIT URL of Petclinic repository'
     )
+    string(
+      name: 'SPRING_PROFILES_ACTIVE'
+      defaultValue: 'dev'
+    )
   }
   environment {
     SCANNER_HOME = tool 'sonar-scanner'
     POSTGRES_URL = "${params.POSTGRES_URL}"
+    
   }
   stages {
     stage('Clean Workspace') { steps { cleanWs() } }
@@ -55,11 +60,8 @@ pipeline {
           withVault([configuration: configuration, vaultSecrets: app_secrets]) {
             sh '''#!/bin/bash
                 echo "Env var: ${SONAR_TOKEN}"
-              mvn verify \
-                -DskipTests \
-                -Dspring.datasource.jdbc-url="${POSTGRES_URL}" \
-                -Dspring.datasource.username="${POSTGRES_USER}" \
-                -Dspring.datasource.password="${POSTGRES_PASS}"
+              mvn clean verify -Dspring.profiles.active=${params.SPRING_PROFILES_ACTIVE}
+
               '''
             }
         }

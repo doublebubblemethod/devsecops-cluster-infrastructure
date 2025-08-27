@@ -1,28 +1,29 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: petclinic-app
+  name: demo-petclinic-app
   namespace: application
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: petclinic
+      app: demo-petclinic
   template:
     metadata:
       labels:
-        app: petclinic
+        app: demo-petclinic
     spec:
       imagePullSecrets:
         - name: regcred
       containers:
-        - name: petclinic
-          image: askdragon/petclinic:32
+        - name: demo-petclinic
+          image: askdragon/demopetclinic:8
           ports:
             - containerPort: 8080
+              name: http
+            - containerPort: 6300
+              name: jacoco
           env:
-            - name: SPRING_PROFILES_ACTIVE
-              value: "dev"
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
@@ -35,3 +36,19 @@ spec:
                   key: POSTGRES_PASSWORD
             - name: POSTGRES_URL
               value: jdbc:postgresql://postres-postgresql.application.svc.cluster.local:5432/postgres
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-petclinic-service
+  namespace: application
+spec:
+  selector:
+    app: demo-petclinic
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+    - name: jacoco
+      port: 6300
+      targetPort: jacoco
